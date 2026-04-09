@@ -3,22 +3,27 @@
 import { useEffect, useState } from "react";
 import TopNav from "../../components/TopNav";
 import MonthlyResults from "../../components/MonthlyResults";
+import { loadGigs } from "../../utils/supabase/gigs";
 
 export default function ResultsPage() {
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [gigs, setGigs] = useState([]);
 
   useEffect(() => {
-    try {
-      const savedGigs = localStorage.getItem("dj-gigs");
-      if (savedGigs) {
-        setGigs(JSON.parse(savedGigs));
+    async function loadResultsData() {
+      try {
+        const gigsData = await loadGigs();
+        setGigs(gigsData);
+      } catch (error) {
+        console.error("Failed to load gigs for results:", error);
+      } finally {
+        setLoading(false);
+        setMounted(true);
       }
-    } catch (error) {
-      console.error("Failed to load gigs from localStorage:", error);
     }
 
-    setMounted(true);
+    loadResultsData();
   }, []);
 
   return (
@@ -31,7 +36,7 @@ export default function ResultsPage() {
           Monthly overview of your economic results.
         </p>
 
-        {!mounted ? (
+        {!mounted || loading ? (
           <p className="text-zinc-500">Loading results...</p>
         ) : (
           <MonthlyResults gigs={gigs} />

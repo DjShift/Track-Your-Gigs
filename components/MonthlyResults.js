@@ -167,8 +167,8 @@ export default function MonthlyResults({ gigs }) {
     ? groupedResults[activeMonthKey]
     : null;
 
-  const clubProfitMap = useMemo(() => {
-    return gigs.reduce((acc, gig) => {
+  function buildTopClub(filteredGigs) {
+    const clubMap = filteredGigs.reduce((acc, gig) => {
       if (gig.status !== "Played") return acc;
 
       const venueName = gig.venue || "Unknown Club";
@@ -193,13 +193,40 @@ export default function MonthlyResults({ gigs }) {
 
       return acc;
     }, {});
-  }, [gigs]);
 
-  const mostProfitableClub = useMemo(() => {
-    return Object.values(clubProfitMap).sort(
-      (a, b) => b.netIncome - a.netIncome
-    )[0];
-  }, [clubProfitMap]);
+    return Object.values(clubMap).sort((a, b) => b.netIncome - a.netIncome)[0];
+  }
+
+  const topClubThisMonth = useMemo(() => {
+    if (!selectedYear || selectedMonthIndex === null) return null;
+
+    const filteredGigs = gigs.filter((gig) => {
+      if (!gig.eventDate) return false;
+
+      const date = new Date(gig.eventDate);
+
+      return (
+        date.getFullYear() === selectedYear &&
+        date.getMonth() === selectedMonthIndex
+      );
+    });
+
+    return buildTopClub(filteredGigs);
+  }, [gigs, selectedYear, selectedMonthIndex]);
+
+  const topClubThisYear = useMemo(() => {
+    if (!selectedYear) return null;
+
+    const filteredGigs = gigs.filter((gig) => {
+      if (!gig.eventDate) return false;
+
+      const date = new Date(gig.eventDate);
+
+      return date.getFullYear() === selectedYear;
+    });
+
+    return buildTopClub(filteredGigs);
+  }, [gigs, selectedYear]);
 
   function getChartData() {
     if (!selectedYear) return [];
@@ -280,6 +307,64 @@ export default function MonthlyResults({ gigs }) {
             })}
           </svg>
         </div>
+      </div>
+    );
+  }
+
+  function renderTopClubCard(title, clubData, subtitle) {
+    return (
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h3 className="text-lg font-semibold">{title}</h3>
+            <p className="text-sm text-zinc-400">{subtitle}</p>
+          </div>
+        </div>
+
+        {clubData ? (
+          <>
+            <div className="mb-4">
+              <p className="text-xs uppercase tracking-wide text-zinc-500 mb-1">
+                Club
+              </p>
+              <p className="text-xl font-bold text-white break-words">
+                {clubData.venue}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
+                <p className="text-xs text-zinc-400 mb-1">Net</p>
+                <p className="text-lg font-bold">
+                  €{clubData.netIncome.toFixed(2)}
+                </p>
+              </div>
+
+              <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
+                <p className="text-xs text-zinc-400 mb-1">Played</p>
+                <p className="text-lg font-bold">{clubData.playedGigs}</p>
+              </div>
+
+              <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
+                <p className="text-xs text-zinc-400 mb-1">Gross</p>
+                <p className="text-lg font-bold">
+                  €{clubData.grossIncome.toFixed(2)}
+                </p>
+              </div>
+
+              <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
+                <p className="text-xs text-zinc-400 mb-1">Travel</p>
+                <p className="text-lg font-bold">
+                  €{clubData.travelCost.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
+            <p className="text-zinc-400">No data</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -463,46 +548,21 @@ export default function MonthlyResults({ gigs }) {
         </div>
       )}
 
-      {mostProfitableClub && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-          <h2 className="text-2xl font-semibold mb-4">Most Profitable Club</h2>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        {renderTopClubCard(
+          "Top Club This Month",
+          topClubThisMonth,
+          selectedYear !== null && selectedMonthIndex !== null
+            ? `${monthLongNames[selectedMonthIndex]} ${selectedYear}`
+            : "Selected month"
+        )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-              <p className="text-sm text-zinc-400 mb-2">Club</p>
-              <p className="text-2xl font-bold">{mostProfitableClub.venue}</p>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-              <p className="text-sm text-zinc-400 mb-2">Actual Net Income</p>
-              <p className="text-3xl font-bold">
-                €{mostProfitableClub.netIncome.toFixed(2)}
-              </p>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-              <p className="text-sm text-zinc-400 mb-2">Played Gigs</p>
-              <p className="text-3xl font-bold">
-                {mostProfitableClub.playedGigs}
-              </p>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-              <p className="text-sm text-zinc-400 mb-2">Actual Gross Income</p>
-              <p className="text-3xl font-bold">
-                €{mostProfitableClub.grossIncome.toFixed(2)}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 text-sm text-zinc-400">
-            Travel Cost:{" "}
-            <span className="text-white font-semibold">
-              €{mostProfitableClub.travelCost.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      )}
+        {renderTopClubCard(
+          "Top Club This Year",
+          topClubThisYear,
+          selectedYear ? `${selectedYear}` : "Selected year"
+        )}
+      </div>
 
       {renderActualNetIncomeChart()}
     </div>

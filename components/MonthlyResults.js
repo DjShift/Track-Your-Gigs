@@ -328,7 +328,7 @@ export default function MonthlyResults({ gigs }) {
 
         <div>
           <p className="text-sm text-zinc-400 mb-2">Select Month</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2">
             {monthLongNames.map((monthName, index) => {
               const monthKey = `${selectedYear}-${String(index + 1).padStart(
                 2,
@@ -342,7 +342,7 @@ export default function MonthlyResults({ gigs }) {
                   key={monthName}
                   type="button"
                   onClick={() => setSelectedMonthIndex(index)}
-                  className={`rounded-xl px-4 py-3 text-sm font-medium border transition-all ${
+                  className={`rounded-xl px-3 py-3 text-xs sm:text-sm font-medium border transition-all ${
                     isActive
                       ? "bg-purple-600 border-purple-500 text-white"
                       : hasData
@@ -350,7 +350,7 @@ export default function MonthlyResults({ gigs }) {
                       : "bg-zinc-950 border-zinc-900 text-zinc-600"
                   }`}
                 >
-                  {monthName}
+                  {monthShortNames[index]}
                 </button>
               );
             })}
@@ -459,9 +459,7 @@ export default function MonthlyResults({ gigs }) {
               ? `${monthLongNames[selectedMonthIndex]} ${selectedYear}`
               : "Monthly Results"}
           </h2>
-          <p className="text-zinc-400">
-            There are no results for this month.
-          </p>
+          <p className="text-zinc-400">There are no results for this month.</p>
         </div>
       )}
 

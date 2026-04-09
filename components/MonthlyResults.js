@@ -1,6 +1,36 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function MonthlyResults({ gigs }) {
+  const monthShortNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
+  const monthLongNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
   function getMonthKey(dateString) {
     const date = new Date(dateString);
 
@@ -10,25 +40,21 @@ export default function MonthlyResults({ gigs }) {
     )}`;
   }
 
-  function getMonthLabel(dateString) {
-    const date = new Date(dateString);
-
-    return date.toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    });
-  }
-
   const groupedResults = useMemo(() => {
     return gigs.reduce((acc, gig) => {
       if (!gig.eventDate) return acc;
 
+      const date = new Date(gig.eventDate);
+      const year = date.getFullYear();
+      const monthIndex = date.getMonth();
       const monthKey = getMonthKey(gig.eventDate);
 
       if (!acc[monthKey]) {
         acc[monthKey] = {
           key: monthKey,
-          label: getMonthLabel(gig.eventDate),
+          year,
+          monthIndex,
+          label: `${monthLongNames[monthIndex]} ${year}`,
           totalGigs: 0,
           plannedGigs: 0,
           playedGigs: 0,
@@ -70,27 +96,72 @@ export default function MonthlyResults({ gigs }) {
     }, {});
   }, [gigs]);
 
-  const sortedMonths = useMemo(() => {
-    return Object.entries(groupedResults).sort((a, b) =>
-      b[0].localeCompare(a[0])
-    );
+  const availableYears = useMemo(() => {
+    const years = [
+      ...new Set(Object.values(groupedResults).map((month) => month.year)),
+    ];
+
+    return years.sort((a, b) => b - a);
   }, [groupedResults]);
 
-  const monthOptions = useMemo(() => {
-    return sortedMonths.map(([monthKey, monthData]) => ({
-      key: monthKey,
-      label: monthData.label,
-    }));
-  }, [sortedMonths]);
+  const [selectedYear, setSelectedYear] = useState(null);
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(null);
 
-  const [selectedMonthKey, setSelectedMonthKey] = useState(
-    sortedMonths[0]?.[0] || null
-  );
+  useEffect(() => {
+    if (availableYears.length === 0) {
+      setSelectedYear(null);
+      setSelectedMonthIndex(null);
+      return;
+    }
+
+    setSelectedYear((currentYear) => {
+      if (currentYear && availableYears.includes(currentYear)) {
+        return currentYear;
+      }
+
+      return availableYears[0];
+    });
+  }, [availableYears]);
+
+  const monthsInSelectedYear = useMemo(() => {
+    if (!selectedYear) return [];
+
+    return Object.values(groupedResults)
+      .filter((month) => month.year === selectedYear)
+      .sort((a, b) => a.monthIndex - b.monthIndex);
+  }, [groupedResults, selectedYear]);
+
+  useEffect(() => {
+    if (!selectedYear) {
+      setSelectedMonthIndex(null);
+      return;
+    }
+
+    const availableMonthIndexes = monthsInSelectedYear.map(
+      (month) => month.monthIndex
+    );
+
+    if (availableMonthIndexes.length === 0) {
+      setSelectedMonthIndex(0);
+      return;
+    }
+
+    setSelectedMonthIndex((currentMonthIndex) => {
+      if (
+        currentMonthIndex !== null &&
+        availableMonthIndexes.includes(currentMonthIndex)
+      ) {
+        return currentMonthIndex;
+      }
+
+      return Math.max(...availableMonthIndexes);
+    });
+  }, [selectedYear, monthsInSelectedYear]);
 
   const activeMonthKey =
-    selectedMonthKey && groupedResults[selectedMonthKey]
-      ? selectedMonthKey
-      : sortedMonths[0]?.[0] || null;
+    selectedYear !== null && selectedMonthIndex !== null
+      ? `${selectedYear}-${String(selectedMonthIndex + 1).padStart(2, "0")}`
+      : null;
 
   const selectedMonthData = activeMonthKey
     ? groupedResults[activeMonthKey]
@@ -131,34 +202,10 @@ export default function MonthlyResults({ gigs }) {
   }, [clubProfitMap]);
 
   function getChartData() {
-    const playedGigDates = gigs
-      .filter((gig) => gig.status === "Played" && gig.eventDate)
-      .map((gig) => new Date(gig.eventDate));
-
-    const fallbackYear = new Date().getFullYear();
-
-    const targetYear =
-      playedGigDates.length > 0
-        ? Math.max(...playedGigDates.map((date) => date.getFullYear()))
-        : fallbackYear;
-
-    const monthShortNames = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
+    if (!selectedYear) return [];
 
     return monthShortNames.map((label, index) => {
-      const monthKey = `${targetYear}-${String(index + 1).padStart(2, "0")}`;
+      const monthKey = `${selectedYear}-${String(index + 1).padStart(2, "0")}`;
       const monthData = groupedResults[monthKey];
 
       return {
@@ -180,9 +227,12 @@ export default function MonthlyResults({ gigs }) {
 
     return (
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-        <h2 className="text-2xl font-semibold mb-4">
+        <h2 className="text-2xl font-semibold mb-2">
           Actual Net Income by Month
         </h2>
+        <p className="text-sm text-zinc-400 mb-4">
+          {selectedYear ? `Year: ${selectedYear}` : "No year selected"}
+        </p>
 
         <div className="overflow-x-auto">
           <svg
@@ -192,13 +242,10 @@ export default function MonthlyResults({ gigs }) {
             role="img"
             aria-label="Actual Net Income by Month"
           >
-            {chartData.map((item) => {
+            {chartData.map((item, index) => {
               const barHeight =
                 item.value > 0 ? (item.value / maxValue) * chartHeight : 0;
 
-              const index = chartData.findIndex(
-                (chartItem) => chartItem.label === item.label
-              );
               const x = leftPadding + index * (barWidth + gap);
               const y = 240 - barHeight;
 
@@ -237,7 +284,7 @@ export default function MonthlyResults({ gigs }) {
     );
   }
 
-  if (sortedMonths.length === 0) {
+  if (availableYears.length === 0) {
     return <p className="text-zinc-500">There are no monthly results yet.</p>;
   }
 
@@ -255,29 +302,63 @@ export default function MonthlyResults({ gigs }) {
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
         <h2 className="text-2xl font-semibold mb-4">Monthly Results</h2>
 
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {monthOptions.map((month) => {
-            const isActive = month.key === activeMonthKey;
+        <div className="mb-5">
+          <p className="text-sm text-zinc-400 mb-2">Select Year</p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {availableYears.map((year) => {
+              const isActive = year === selectedYear;
 
-            return (
-              <button
-                key={month.key}
-                type="button"
-                onClick={() => setSelectedMonthKey(month.key)}
-                className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium border transition-all ${
-                  isActive
-                    ? "bg-purple-600 border-purple-500 text-white"
-                    : "bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
-                }`}
-              >
-                {month.label}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={year}
+                  type="button"
+                  onClick={() => setSelectedYear(year)}
+                  className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium border transition-all ${
+                    isActive
+                      ? "bg-purple-600 border-purple-500 text-white"
+                      : "bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+                  }`}
+                >
+                  {year}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm text-zinc-400 mb-2">Select Month</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2">
+            {monthLongNames.map((monthName, index) => {
+              const monthKey = `${selectedYear}-${String(index + 1).padStart(
+                2,
+                "0"
+              )}`;
+              const hasData = Boolean(groupedResults[monthKey]);
+              const isActive = index === selectedMonthIndex;
+
+              return (
+                <button
+                  key={monthName}
+                  type="button"
+                  onClick={() => setSelectedMonthIndex(index)}
+                  className={`rounded-xl px-4 py-3 text-sm font-medium border transition-all ${
+                    isActive
+                      ? "bg-purple-600 border-purple-500 text-white"
+                      : hasData
+                      ? "bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+                      : "bg-zinc-950 border-zinc-900 text-zinc-600"
+                  }`}
+                >
+                  {monthName}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {selectedMonthData && (
+      {selectedMonthData ? (
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <h2 className="text-2xl font-semibold">{selectedMonthData.label}</h2>
@@ -370,6 +451,17 @@ export default function MonthlyResults({ gigs }) {
               </span>
             </span>
           </div>
+        </div>
+      ) : (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+          <h2 className="text-2xl font-semibold mb-2">
+            {selectedYear !== null && selectedMonthIndex !== null
+              ? `${monthLongNames[selectedMonthIndex]} ${selectedYear}`
+              : "Monthly Results"}
+          </h2>
+          <p className="text-zinc-400">
+            There are no results for this month.
+          </p>
         </div>
       )}
 

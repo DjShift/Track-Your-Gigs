@@ -42,6 +42,9 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: "https://djgigtracker.vercel.app/login",
+      },
     });
 
     if (error) {
@@ -50,7 +53,7 @@ export default function LoginPage() {
       return;
     }
 
-    setSuccessMessage("Account created. You can now log in.");
+    setSuccessMessage("Account created. Check your email and confirm your account.");
     setLoadingAction("");
   }
 

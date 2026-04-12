@@ -237,14 +237,20 @@ export default function MonthlyResults({ gigs }) {
 
       return {
         label,
-        value: monthData ? monthData.actualNetIncome : 0,
+        plannedValue: monthData ? monthData.plannedNetIncome : 0,
+        actualValue: monthData ? monthData.actualNetIncome : 0,
       };
     });
   }
 
   function renderActualNetIncomeChart() {
     const chartData = getChartData();
-    const maxValue = Math.max(...chartData.map((item) => item.value), 1);
+
+    const maxValue = Math.max(
+      ...chartData.map((item) => Math.max(item.plannedValue, item.actualValue)),
+      1
+    );
+
     const chartHeight = 220;
     const barWidth = 44;
     const gap = 16;
@@ -270,22 +276,92 @@ export default function MonthlyResults({ gigs }) {
             aria-label="Actual Net Income by Month"
           >
             {chartData.map((item, index) => {
-              const barHeight =
-                item.value > 0 ? (item.value / maxValue) * chartHeight : 0;
-
               const x = leftPadding + index * (barWidth + gap);
-              const y = 240 - barHeight;
+
+              const plannedHeight =
+                item.plannedValue > 0
+                  ? (item.plannedValue / maxValue) * chartHeight
+                  : 0;
+
+              const actualHeight =
+                item.actualValue > 0
+                  ? (item.actualValue / maxValue) * chartHeight
+                  : 0;
+
+              const plannedY = 240 - plannedHeight;
+              const actualY = 240 - actualHeight;
+
+              const progressHeight =
+                item.plannedValue > 0
+                  ? (Math.min(item.actualValue, item.plannedValue) / maxValue) *
+                    chartHeight
+                  : 0;
+
+              const progressY = 240 - progressHeight;
+
+              const exceedsPlan =
+                item.plannedValue > 0 && item.actualValue > item.plannedValue;
+
+              const overflowHeight = exceedsPlan
+                ? ((item.actualValue - item.plannedValue) / maxValue) *
+                  chartHeight
+                : 0;
+
+              const overflowY = plannedY - overflowHeight;
+
+              const labelY =
+                item.actualValue > 0
+                  ? actualY - 8
+                  : item.plannedValue > 0
+                  ? plannedY - 8
+                  : 232;
 
               return (
                 <g key={item.label}>
-                  <rect
-                    x={x}
-                    y={y}
-                    width={barWidth}
-                    height={barHeight}
-                    rx="8"
-                    className="fill-purple-500"
-                  />
+                  {item.plannedValue > 0 && (
+                    <rect
+                      x={x}
+                      y={plannedY}
+                      width={barWidth}
+                      height={plannedHeight}
+                      rx="8"
+                      className="fill-purple-500 opacity-25"
+                    />
+                  )}
+
+                  {item.plannedValue > 0 && item.actualValue > 0 && (
+                    <rect
+                      x={x}
+                      y={progressY}
+                      width={barWidth}
+                      height={progressHeight}
+                      rx="8"
+                      className="fill-purple-500"
+                    />
+                  )}
+
+                  {item.plannedValue === 0 && item.actualValue > 0 && (
+                    <rect
+                      x={x}
+                      y={actualY}
+                      width={barWidth}
+                      height={actualHeight}
+                      rx="8"
+                      className="fill-purple-500"
+                    />
+                  )}
+
+                  {exceedsPlan && (
+                    <rect
+                      x={x}
+                      y={overflowY}
+                      width={barWidth}
+                      height={overflowHeight}
+                      rx="8"
+                      className="fill-purple-500"
+                    />
+                  )}
+
                   <text
                     x={x + barWidth / 2}
                     y={258}
@@ -294,13 +370,14 @@ export default function MonthlyResults({ gigs }) {
                   >
                     {item.label}
                   </text>
+
                   <text
                     x={x + barWidth / 2}
-                    y={y - 8}
+                    y={labelY}
                     textAnchor="middle"
                     className="fill-white text-xs"
                   >
-                    {item.value > 0 ? `€${item.value.toFixed(0)}` : ""}
+                    {item.actualValue > 0 ? `€${item.actualValue.toFixed(0)}` : ""}
                   </text>
                 </g>
               );

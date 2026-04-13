@@ -194,31 +194,25 @@ export default function MonthlyResults({ gigs }) {
 
     if (yearMonths.length === 0) {
       return {
-        grossIncome: 0,
-        netIncome: 0,
-        plannedCosts: 0,
+        actualGrossIncome: 0,
+        actualNetIncome: 0,
         actualCosts: 0,
-        plannedGigs: 0,
         playedGigs: 0,
       };
     }
 
     return yearMonths.reduce(
       (acc, month) => {
-        acc.grossIncome += month.actualGrossIncome;
-        acc.netIncome += month.actualNetIncome;
-        acc.plannedCosts += month.plannedCosts;
+        acc.actualGrossIncome += month.actualGrossIncome;
+        acc.actualNetIncome += month.actualNetIncome;
         acc.actualCosts += month.actualCosts;
-        acc.plannedGigs += month.plannedGigs;
         acc.playedGigs += month.playedGigs;
         return acc;
       },
       {
-        grossIncome: 0,
-        netIncome: 0,
-        plannedCosts: 0,
+        actualGrossIncome: 0,
+        actualNetIncome: 0,
         actualCosts: 0,
-        plannedGigs: 0,
         playedGigs: 0,
       }
     );
@@ -704,9 +698,9 @@ export default function MonthlyResults({ gigs }) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-          <p className="text-sm text-zinc-400 mb-2">Year Gross Income</p>
+          <p className="text-sm text-zinc-400 mb-2">Year Actual Gross Income</p>
           <p className="text-2xl md:text-3xl font-bold">
-            €{Number(selectedYearSummary?.grossIncome || 0).toFixed(2)}
+            €{Number(selectedYearSummary?.actualGrossIncome || 0).toFixed(2)}
           </p>
           <p className="mt-2 text-xs text-zinc-500">
             Played gigs: {Number(selectedYearSummary?.playedGigs || 0)}
@@ -714,23 +708,12 @@ export default function MonthlyResults({ gigs }) {
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-          <p className="text-sm text-zinc-400 mb-2">Year Net Income</p>
+          <p className="text-sm text-zinc-400 mb-2">Year Actual Net Income</p>
           <p className="text-2xl md:text-3xl font-bold">
-            €{Number(selectedYearSummary?.netIncome || 0).toFixed(2)}
+            €{Number(selectedYearSummary?.actualNetIncome || 0).toFixed(2)}
           </p>
           <p className="mt-2 text-xs text-zinc-500">
-            Planned / Played: {Number(selectedYearSummary?.plannedGigs || 0)} /{" "}
-            {Number(selectedYearSummary?.playedGigs || 0)}
-          </p>
-        </div>
-
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-          <p className="text-sm text-zinc-400 mb-2">Year Planned Costs</p>
-          <p className="text-2xl md:text-3xl font-bold">
-            €{Number(selectedYearSummary?.plannedCosts || 0).toFixed(2)}
-          </p>
-          <p className="mt-2 text-xs text-zinc-500">
-            Planned gigs: {Number(selectedYearSummary?.plannedGigs || 0)}
+            Played gigs: {Number(selectedYearSummary?.playedGigs || 0)}
           </p>
         </div>
 
@@ -741,6 +724,16 @@ export default function MonthlyResults({ gigs }) {
           </p>
           <p className="mt-2 text-xs text-zinc-500">
             Played gigs: {Number(selectedYearSummary?.playedGigs || 0)}
+          </p>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+          <p className="text-sm text-zinc-400 mb-2">Year Played Gigs</p>
+          <p className="text-2xl md:text-3xl font-bold">
+            {Number(selectedYearSummary?.playedGigs || 0)}
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Actual results only
           </p>
         </div>
       </div>

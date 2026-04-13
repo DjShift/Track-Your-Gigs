@@ -20,6 +20,13 @@ export default function GigCard({ gig, onEdit, onDelete }) {
   const startTime = gig.startTime || gig.start_time;
   const endTime = gig.endTime || gig.end_time;
 
+  const fee = Number(gig.fee || 0);
+  const travelCost = Number(gig.travelCost || gig.travel_cost || 0);
+  const extraCosts = Number(gig.extraCosts || gig.extra_costs || 0);
+  const netProfit = Number(gig.netProfit || gig.net_profit || 0);
+  const totalCosts = travelCost + extraCosts;
+  const extraCostsNote = gig.extraCostsNote || gig.extra_costs_note || "";
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -43,30 +50,36 @@ export default function GigCard({ gig, onEdit, onDelete }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
           <p className="text-zinc-400 mb-1">Fee</p>
-          <p className="font-semibold">€{Number(gig.fee || 0).toFixed(2)}</p>
+          <p className="font-semibold">€{fee.toFixed(2)}</p>
         </div>
 
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
           <p className="text-zinc-400 mb-1">Travel</p>
-          <p className="font-semibold">
-            €{Number(gig.travelCost || 0).toFixed(2)}
-          </p>
+          <p className="font-semibold">€{travelCost.toFixed(2)}</p>
+        </div>
+
+        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
+          <p className="text-zinc-400 mb-1">Extra</p>
+          <p className="font-semibold">€{extraCosts.toFixed(2)}</p>
         </div>
 
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
           <p className="text-zinc-400 mb-1">Net</p>
-          <p className="font-semibold">
-            €{Number(gig.netProfit || 0).toFixed(2)}
-          </p>
+          <p className="font-semibold">€{netProfit.toFixed(2)}</p>
         </div>
 
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
           <p className="text-zinc-400 mb-1">Distance</p>
           <p className="font-semibold">{Number(gig.distance || 0)} km</p>
         </div>
+      </div>
+
+      <div className="text-sm text-zinc-300">
+        <span className="text-zinc-400">Total Costs: </span>
+        €{totalCosts.toFixed(2)}
       </div>
 
       {(startTime || endTime || durationLabel) && (
@@ -76,6 +89,13 @@ export default function GigCard({ gig, onEdit, onDelete }) {
           {durationLabel ? ` • ${durationLabel}` : ""}
         </div>
       )}
+
+      {extraCostsNote ? (
+        <div className="text-sm text-zinc-300">
+          <span className="text-zinc-400">Extra Costs Note: </span>
+          {extraCostsNote}
+        </div>
+      ) : null}
 
       {gig.notes ? (
         <div className="text-sm text-zinc-400">{gig.notes}</div>
@@ -92,7 +112,7 @@ export default function GigCard({ gig, onEdit, onDelete }) {
 
         <button
           type="button"
-          onClick={() => onDelete(gig)}
+          onClick={() => onDelete(gig.id)}
           className="rounded-xl bg-red-600/80 px-4 py-2 text-sm text-white hover:bg-red-500 transition"
         >
           Delete

@@ -74,7 +74,9 @@ export default function Home() {
       const oneWayDistance = Number(gigData.distance || 0);
       const roundTripDistance = oneWayDistance * 2;
       const travelCost = roundTripDistance * costPerKm;
-      const netProfit = Number(gigData.fee || 0) - travelCost;
+      const extraCosts = Number(gigData.extraCosts || 0);
+      const totalCosts = travelCost + extraCosts;
+      const netProfit = Number(gigData.fee || 0) - totalCosts;
 
       const payload = {
         club_id: null,
@@ -85,6 +87,8 @@ export default function Home() {
         fee: Number(gigData.fee || 0),
         status: gigData.status,
         travel_cost: travelCost,
+        extra_costs: extraCosts,
+        extra_costs_note: gigData.extraCostsNote || "",
         net_profit: netProfit,
         notes: gigData.notes || "",
         start_time: gigData.startTime || "22:00",

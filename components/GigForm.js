@@ -47,6 +47,8 @@ export default function GigForm({
     startTime: "22:00",
     endTime: "04:00",
     durationHours: 6,
+    extraCosts: 0,
+    extraCostsNote: "",
   });
 
   const [clubMode, setClubMode] = useState("saved");
@@ -75,6 +77,8 @@ export default function GigForm({
         startTime: gig.startTime || gig.start_time || "22:00",
         endTime: gig.endTime || gig.end_time || "04:00",
         durationHours: gig.durationHours ?? gig.duration_hours ?? 6,
+        extraCosts: gig.extraCosts ?? gig.extra_costs ?? 0,
+        extraCostsNote: gig.extraCostsNote ?? gig.extra_costs_note ?? "",
       });
 
       const matchedClub = savedClubs.find(
@@ -96,6 +100,8 @@ export default function GigForm({
       startTime: "22:00",
       endTime: "04:00",
       durationHours: 6,
+      extraCosts: 0,
+      extraCostsNote: "",
     });
 
     setClubMode("saved");
@@ -163,25 +169,20 @@ export default function GigForm({
   function handleSubmit(e) {
     e.preventDefault();
 
-    const fee = Number(formData.fee || 0);
-    const distance = Number(formData.distance || 0);
-    const travelCost = distance * 2 * Number(costPerKm || 0.25);
-    const netProfit = fee - travelCost;
-
     const payload = {
       ...gig,
       eventDate: formData.eventDate,
       venue: formData.venue,
       city: formData.city,
-      distance,
-      fee,
+      distance: Number(formData.distance || 0),
+      fee: Number(formData.fee || 0),
       status: formData.status,
       notes: formData.notes,
       startTime: formData.startTime,
       endTime: formData.endTime,
       durationHours: Number(formData.durationHours || 0),
-      travelCost,
-      netProfit,
+      extraCosts: Number(formData.extraCosts || 0),
+      extraCostsNote: formData.extraCostsNote || "",
     };
 
     onSave(payload);
@@ -190,7 +191,9 @@ export default function GigForm({
   const estimatedTravelCost =
     Number(formData.distance || 0) * 2 * Number(costPerKm || 0.25);
 
-  const estimatedNetProfit = Number(formData.fee || 0) - estimatedTravelCost;
+  const estimatedExtraCosts = Number(formData.extraCosts || 0);
+  const estimatedTotalCosts = estimatedTravelCost + estimatedExtraCosts;
+  const estimatedNetProfit = Number(formData.fee || 0) - estimatedTotalCosts;
 
   return (
     <div
@@ -269,7 +272,7 @@ export default function GigForm({
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm text-zinc-400 mb-2">
                   Event Date
@@ -381,10 +384,39 @@ export default function GigForm({
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">
+                  Extra Costs (€)
+                </label>
+                <input
+                  type="number"
+                  name="extraCosts"
+                  value={formData.extraCosts}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">
+                  Extra Costs Note
+                </label>
+                <input
+                  type="text"
+                  name="extraCostsNote"
+                  value={formData.extraCostsNote}
+                  onChange={handleChange}
+                  placeholder="e.g. parking, hotel..."
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                />
+              </div>
             </div>
 
             <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
                   <p className="text-zinc-400 mb-1">Duration</p>
                   <p className="font-semibold text-white">
@@ -398,11 +430,24 @@ export default function GigForm({
                   </p>
                 </div>
                 <div>
+                  <p className="text-zinc-400 mb-1">Extra Costs</p>
+                  <p className="font-semibold text-white">
+                    €{estimatedExtraCosts.toFixed(2)}
+                  </p>
+                </div>
+                <div>
                   <p className="text-zinc-400 mb-1">Net Profit</p>
                   <p className="font-semibold text-white">
                     €{estimatedNetProfit.toFixed(2)}
                   </p>
                 </div>
+              </div>
+
+              <div className="mt-3 text-sm text-zinc-400">
+                Total Costs:{" "}
+                <span className="text-white font-semibold">
+                  €{estimatedTotalCosts.toFixed(2)}
+                </span>
               </div>
             </div>
 

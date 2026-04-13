@@ -235,7 +235,9 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
       const oneWayDistance = Number(gigData.distance || 0);
       const roundTripDistance = oneWayDistance * 2;
       const travelCost = roundTripDistance * costPerKm;
-      const netProfit = Number(gigData.fee || 0) - travelCost;
+      const extraCosts = Number(gigData.extraCosts || 0);
+      const totalCosts = travelCost + extraCosts;
+      const netProfit = Number(gigData.fee || 0) - totalCosts;
 
       const payload = {
         club_id: null,
@@ -246,6 +248,8 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
         fee: Number(gigData.fee || 0),
         status: gigData.status,
         travel_cost: travelCost,
+        extra_costs: extraCosts,
+        extra_costs_note: gigData.extraCostsNote || "",
         net_profit: netProfit,
         notes: gigData.notes || "",
         start_time: gigData.startTime || "22:00",
@@ -384,7 +388,9 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
                   gigsForDay
                 )}`}
                 title={
-                  hasGigs ? gigsForDay.map((gig) => gig.venue).join(", ") : "Add gig"
+                  hasGigs
+                    ? gigsForDay.map((gig) => gig.venue).join(", ")
+                    : "Add gig"
                 }
               >
                 <div className="flex flex-col h-full">
@@ -487,12 +493,28 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
                         <p>Distance: {gig.distance} km one way</p>
                         <p>Fee: {gig.fee} €</p>
                         <p>
-                          Travel Cost:{" "}
-                          {Number(gig.travelCost || gig.travel_cost || 0).toFixed(2)} €
+                          Travel by Car:{" "}
+                          {Number(
+                            gig.travelCost || gig.travel_cost || 0
+                          ).toFixed(2)}{" "}
+                          €
                         </p>
                         <p>
+                          Other Costs:{" "}
+                          {Number(
+                            gig.extraCosts || gig.extra_costs || 0
+                          ).toFixed(2)}{" "}
+                          €
+                        </p>
+                        {gig.extraCostsNote && (
+                          <p>Other Costs Note: {gig.extraCostsNote}</p>
+                        )}
+                        <p>
                           Net Profit:{" "}
-                          {Number(gig.netProfit || gig.net_profit || 0).toFixed(2)} €
+                          {Number(
+                            gig.netProfit || gig.net_profit || 0
+                          ).toFixed(2)}{" "}
+                          €
                         </p>
                         {(startTime || endTime) && (
                           <p>

@@ -60,21 +60,23 @@ export default function MonthlyResults({ gigs }) {
           playedGigs: 0,
           canceledGigs: 0,
           plannedGrossIncome: 0,
-          plannedTravelCost: 0,
+          plannedCosts: 0,
           plannedNetIncome: 0,
           actualGrossIncome: 0,
-          actualTravelCost: 0,
+          actualCosts: 0,
           actualNetIncome: 0,
         };
       }
 
       const fee = Number(gig.fee || 0);
-      const travelCost = Number(gig.travelCost || 0);
-      const netProfit = Number(gig.netProfit || 0);
+      const travelCost = Number(gig.travelCost || gig.travel_cost || 0);
+      const extraCosts = Number(gig.extraCosts || gig.extra_costs || 0);
+      const totalCosts = travelCost + extraCosts;
+      const netProfit = Number(gig.netProfit || gig.net_profit || 0);
 
       acc[monthKey].totalGigs += 1;
       acc[monthKey].plannedGrossIncome += fee;
-      acc[monthKey].plannedTravelCost += travelCost;
+      acc[monthKey].plannedCosts += totalCosts;
       acc[monthKey].plannedNetIncome += netProfit;
 
       if (gig.status === "Planned") {
@@ -84,7 +86,7 @@ export default function MonthlyResults({ gigs }) {
       if (gig.status === "Played") {
         acc[monthKey].playedGigs += 1;
         acc[monthKey].actualGrossIncome += fee;
-        acc[monthKey].actualTravelCost += travelCost;
+        acc[monthKey].actualCosts += totalCosts;
         acc[monthKey].actualNetIncome += netProfit;
       }
 
@@ -172,23 +174,25 @@ export default function MonthlyResults({ gigs }) {
       if (gig.status !== "Played") return acc;
 
       const venueName = gig.venue || "Unknown Club";
-      const netProfit = Number(gig.netProfit || 0);
       const grossIncome = Number(gig.fee || 0);
-      const travelCost = Number(gig.travelCost || 0);
+      const travelCost = Number(gig.travelCost || gig.travel_cost || 0);
+      const extraCosts = Number(gig.extraCosts || gig.extra_costs || 0);
+      const totalCosts = travelCost + extraCosts;
+      const netProfit = Number(gig.netProfit || gig.net_profit || 0);
 
       if (!acc[venueName]) {
         acc[venueName] = {
           venue: venueName,
           playedGigs: 0,
           grossIncome: 0,
-          travelCost: 0,
+          totalCosts: 0,
           netIncome: 0,
         };
       }
 
       acc[venueName].playedGigs += 1;
       acc[venueName].grossIncome += grossIncome;
-      acc[venueName].travelCost += travelCost;
+      acc[venueName].totalCosts += totalCosts;
       acc[venueName].netIncome += netProfit;
 
       return acc;
@@ -430,9 +434,9 @@ export default function MonthlyResults({ gigs }) {
               </div>
 
               <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
-                <p className="text-xs text-zinc-400 mb-1">Travel</p>
+                <p className="text-xs text-zinc-400 mb-1">Costs</p>
                 <p className="text-lg font-bold">
-                  €{clubData.travelCost.toFixed(2)}
+                  €{clubData.totalCosts.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -549,9 +553,9 @@ export default function MonthlyResults({ gigs }) {
             </div>
 
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-              <p className="text-sm text-zinc-400 mb-2">Planned Travel Cost</p>
+              <p className="text-sm text-zinc-400 mb-2">Planned Costs</p>
               <p className="text-3xl font-bold">
-                €{selectedMonthData.plannedTravelCost.toFixed(2)}
+                €{selectedMonthData.plannedCosts.toFixed(2)}
               </p>
             </div>
 
@@ -570,9 +574,9 @@ export default function MonthlyResults({ gigs }) {
             </div>
 
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-              <p className="text-sm text-zinc-400 mb-2">Actual Travel Cost</p>
+              <p className="text-sm text-zinc-400 mb-2">Actual Costs</p>
               <p className="text-3xl font-bold">
-                €{selectedMonthData.actualTravelCost.toFixed(2)}
+                €{selectedMonthData.actualCosts.toFixed(2)}
               </p>
             </div>
 

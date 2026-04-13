@@ -52,6 +52,17 @@ export default function GigForm({
   const [clubMode, setClubMode] = useState("saved");
 
   useEffect(() => {
+    function handleEscape(event) {
+      if (event.key === "Escape") {
+        onCancel();
+      }
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [onCancel]);
+
+  useEffect(() => {
     if (gig) {
       setFormData({
         eventDate: gig.eventDate || "",
@@ -182,12 +193,27 @@ export default function GigForm({
   const estimatedNetProfit = Number(formData.fee || 0) - estimatedTravelCost;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4">
-      <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-2xl max-h-[88vh] flex flex-col overflow-hidden">
-        <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-zinc-800">
+    <div
+      className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-2xl max-h-[88vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-zinc-800 flex items-center justify-between gap-3">
           <h2 className="text-xl sm:text-2xl font-semibold">
             {gig ? "Edit Gig" : "Add Gig"}
           </h2>
+
+          <button
+            type="button"
+            onClick={onCancel}
+            className="shrink-0 rounded-xl border border-zinc-700 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition"
+            aria-label="Close"
+          >
+            ✕
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col min-h-0">

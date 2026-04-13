@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import GigForm from "../components/GigForm";
 import GigCard from "../components/GigCard";
 import TopNav from "../components/TopNav";
@@ -11,31 +11,22 @@ import {
   createGig,
   updateGig,
   deleteGigById,
-  updateGigStatus,
 } from "../utils/supabase/gigs";
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [editingGigId, setEditingGigId] = useState(null);
-  const [inputMode, setInputMode] = useState("new");
   const [savedClubs, setSavedClubs] = useState([]);
-  const [selectedClubId, setSelectedClubId] = useState("");
-
-  const [eventDate, setEventDate] = useState("");
-  const [venue, setVenue] = useState("");
-  const [city, setCity] = useState("");
-  const [distance, setDistance] = useState("");
-  const [fee, setFee] = useState("");
-  const [status, setStatus] = useState("Planned");
-  const [notes, setNotes] = useState("");
   const [gigs, setGigs] = useState([]);
   const [costPerKm, setCostPerKm] = useState(0.25);
 
   const [venueFilter, setVenueFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  const [showGigForm, setShowGigForm] = useState(false);
+  const [editingGig, setEditingGig] = useState(null);
 
   async function loadInitialData() {
     setLoading(true);
@@ -62,77 +53,55 @@ export default function Home() {
     loadInitialData();
   }, []);
 
-  function applySavedClub(clubId) {
-    const club = savedClubs.find((item) => String(item.id) === String(clubId));
-    if (!club) return;
-
-    setVenue(club.club_name || "");
-    setCity(club.city || "");
-    setDistance(String(club.distance ?? ""));
-    setFee(String(club.default_fee ?? ""));
+  function closeGigForm() {
+    setShowGigForm(false);
+    setEditingGig(null);
   }
 
-  function resetForm() {
-    setEditingGigId(null);
-    setInputMode("new");
-    setSelectedClubId("");
-    setEventDate("");
-    setVenue("");
-    setCity("");
-    setDistance("");
-    setFee("");
-    setStatus("Planned");
-    setNotes("");
+  function openNewGigForm() {
+    setEditingGig(null);
+    setShowGigForm(true);
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  function handleEditGig(gig) {
+    setEditingGig(gig);
+    setShowGigForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
+  async function handleSaveGig(gigData) {
     try {
-      const distanceNumber = Number(distance);
-      const feeNumber = Number(fee);
-      const travelCost = distanceNumber * costPerKm;
-      const netProfit = feeNumber - travelCost;
+      const payload = {
+        club_id: null,
+        event_date: gigData.eventDate,
+        venue: gigData.venue,
+        city: gigData.city,
+        distance: Number(gigData.distance || 0),
+        fee: Number(gigData.fee || 0),
+        status: gigData.status,
+        travel_cost: Number(gigData.travelCost || 0),
+        net_profit: Number(gigData.netProfit || 0),
+        notes: gigData.notes || "",
+        start_time: gigData.startTime || "22:00",
+        end_time: gigData.endTime || "04:00",
+        duration_hours: Number(gigData.durationHours || 6),
+      };
 
-      if (editingGigId) {
-        const updatedGig = await updateGig(editingGigId, {
-          club_id: null,
-          event_date: eventDate,
-          venue,
-          city,
-          distance: distanceNumber,
-          fee: feeNumber,
-          status,
-          travel_cost: travelCost,
-          net_profit: netProfit,
-          notes,
-        });
+      if (editingGig?.id) {
+        const updatedGig = await updateGig(editingGig.id, payload);
 
-        const updatedGigs = gigs.map((gig) =>
-          gig.id === editingGigId ? updatedGig : gig
+        setGigs((prev) =>
+          prev.map((gig) => (gig.id === editingGig.id ? updatedGig : gig))
         );
 
-        setGigs(updatedGigs);
-        resetForm();
+        closeGigForm();
         return;
       }
 
-      const newGig = await createGig({
-        club_id: inputMode === "saved" ? selectedClubId || null : null,
-        event_date: eventDate,
-        venue,
-        city,
-        distance: distanceNumber,
-        fee: feeNumber,
-        status,
-        travel_cost: travelCost,
-        net_profit: netProfit,
-        notes,
-      });
+      const newGig = await createGig(payload);
 
-      const updatedGigs = [newGig, ...gigs];
-      setGigs(updatedGigs);
-      resetForm();
+      setGigs((prev) => [newGig, ...prev]);
+      closeGigForm();
     } catch (error) {
       console.error("Failed to save gig:", error);
       alert("Saving gig failed.");
@@ -146,42 +115,15 @@ export default function Home() {
     try {
       await deleteGigById(id);
 
-      const updatedGigs = gigs.filter((gig) => gig.id !== id);
-      setGigs(updatedGigs);
+      setGigs((prev) => prev.filter((gig) => gig.id !== id));
 
-      if (editingGigId === id) {
-        resetForm();
+      if (editingGig?.id === id) {
+        closeGigForm();
       }
     } catch (error) {
       console.error("Failed to delete gig:", error);
       alert("Delete failed.");
     }
-  }
-
-  async function handleStatusChange(id, newStatus) {
-    try {
-      const updatedGig = await updateGigStatus(id, newStatus);
-      const updatedGigs = gigs.map((gig) => (gig.id === id ? updatedGig : gig));
-      setGigs(updatedGigs);
-    } catch (error) {
-      console.error("Failed to update status:", error);
-      alert("Status update failed.");
-    }
-  }
-
-  function handleEditGig(gig) {
-    setEditingGigId(gig.id);
-    setInputMode("new");
-    setSelectedClubId("");
-    setEventDate(gig.eventDate);
-    setVenue(gig.venue);
-    setCity(gig.city);
-    setDistance(String(gig.distance));
-    setFee(String(gig.fee));
-    setStatus(gig.status);
-    setNotes(gig.notes || "");
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function handleThisMonth() {
@@ -205,54 +147,51 @@ export default function Home() {
     setDateTo("");
   }
 
-  const filteredGigs = gigs.filter((gig) => {
-    const gigVenue = gig.venue?.toLowerCase() || "";
-    const gigDate = gig.eventDate || "";
+  const filteredGigs = useMemo(() => {
+    return gigs.filter((gig) => {
+      const gigVenue = gig.venue?.toLowerCase() || "";
+      const gigDate = gig.eventDate || gig.event_date || "";
 
-    const matchVenue =
-      !venueFilter || gigVenue.includes(venueFilter.toLowerCase());
+      const matchVenue =
+        !venueFilter || gigVenue.includes(venueFilter.toLowerCase());
 
-    const matchFrom = !dateFrom || gigDate >= dateFrom;
-    const matchTo = !dateTo || gigDate <= dateTo;
+      const matchFrom = !dateFrom || gigDate >= dateFrom;
+      const matchTo = !dateTo || gigDate <= dateTo;
 
-    return matchVenue && matchFrom && matchTo;
-  });
+      return matchVenue && matchFrom && matchTo;
+    });
+  }, [gigs, venueFilter, dateFrom, dateTo]);
 
   return (
     <main className="min-h-screen bg-black text-white p-8">
       <div className="max-w-3xl mx-auto">
         <TopNav />
 
-        <h1 className="text-4xl font-bold mb-2">DJ Gigs Manager</h1>
-        <p className="text-zinc-400 mb-8">
-          Your complete overview of DJ gigs.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-4xl font-bold mb-2 text-red-500">TEST APP PAGE</h1>
+            <p className="text-zinc-400">Your complete overview of DJ gigs.</p>
+          </div>
 
-        <GigForm
-          editingGigId={editingGigId}
-          inputMode={inputMode}
-          setInputMode={setInputMode}
-          savedClubs={savedClubs}
-          selectedClubId={selectedClubId}
-          setSelectedClubId={setSelectedClubId}
-          applySavedClub={applySavedClub}
-          eventDate={eventDate}
-          setEventDate={setEventDate}
-          venue={venue}
-          setVenue={setVenue}
-          city={city}
-          setCity={setCity}
-          distance={distance}
-          setDistance={setDistance}
-          fee={fee}
-          setFee={setFee}
-          status={status}
-          setStatus={setStatus}
-          notes={notes}
-          setNotes={setNotes}
-          handleSubmit={handleSubmit}
-          resetForm={resetForm}
-        />
+          <button
+            type="button"
+            onClick={openNewGigForm}
+            className="bg-purple-600 hover:bg-purple-500 transition rounded-xl px-5 py-3 text-sm font-medium"
+          >
+            Add Gig
+          </button>
+        </div>
+
+        {showGigForm && (
+          <GigForm
+            gig={editingGig}
+            selectedDate=""
+            savedClubs={savedClubs}
+            costPerKm={costPerKm}
+            onSave={handleSaveGig}
+            onCancel={closeGigForm}
+          />
+        )}
 
         {!mounted || loading ? (
           <p className="text-zinc-500">Loading gigs...</p>
@@ -329,9 +268,8 @@ export default function Home() {
                   <GigCard
                     key={gig.id}
                     gig={gig}
-                    handleStatusChange={handleStatusChange}
-                    handleEditGig={handleEditGig}
-                    handleDeleteGig={handleDeleteGig}
+                    onEdit={handleEditGig}
+                    onDelete={handleDeleteGig}
                   />
                 ))
               )}

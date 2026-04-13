@@ -12,6 +12,21 @@ import {
   deleteGigById,
 } from "../utils/supabase/gigs";
 
+function formatTotalHours(gigsForDay) {
+  const total = gigsForDay.reduce((sum, gig) => {
+    const hours = Number(gig.durationHours ?? gig.duration_hours ?? 0);
+    return sum + (Number.isFinite(hours) ? hours : 0);
+  }, 0);
+
+  if (!total) return "";
+
+  if (Number.isInteger(total)) {
+    return `${total}h`;
+  }
+
+  return `${total.toFixed(1)}h`;
+}
+
 export default function CalendarGrid({ gigs = [], setGigs }) {
   const pathname = usePathname();
 
@@ -21,20 +36,10 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
 
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedDayGigs, setSelectedDayGigs] = useState([]);
-  const [editingGigId, setEditingGigId] = useState(null);
+  const [editingGig, setEditingGig] = useState(null);
   const [isAddingGig, setIsAddingGig] = useState(false);
 
-  const [inputMode, setInputMode] = useState("new");
   const [savedClubs, setSavedClubs] = useState([]);
-  const [selectedClubId, setSelectedClubId] = useState("");
-
-  const [eventDate, setEventDate] = useState("");
-  const [venue, setVenue] = useState("");
-  const [city, setCity] = useState("");
-  const [distance, setDistance] = useState("");
-  const [fee, setFee] = useState("");
-  const [status, setStatus] = useState("Planned");
-  const [notes, setNotes] = useState("");
   const [costPerKm, setCostPerKm] = useState(0.25);
 
   function resetToToday() {
@@ -58,18 +63,6 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
       console.error("Failed to load calendar data:", error);
       setSavedClubs([]);
     }
-  }
-
-  function resetForm() {
-    setInputMode("new");
-    setSelectedClubId("");
-    setEventDate("");
-    setVenue("");
-    setCity("");
-    setDistance("");
-    setFee("");
-    setStatus("Planned");
-    setNotes("");
   }
 
   useEffect(() => {
@@ -134,11 +127,11 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
 
   const calendarCells = [];
 
-  for (let i = 0; i < startDay; i++) {
+  for (let i = 0; i < startDay; i += 1) {
     calendarCells.push(null);
   }
 
-  for (let day = 1; day <= daysInMonth; day++) {
+  for (let day = 1; day <= daysInMonth; day += 1) {
     calendarCells.push(day);
   }
 
@@ -148,9 +141,13 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
     return `${currentYear}-${formattedMonth}-${formattedDay}`;
   }
 
+  function getGigDate(gig) {
+    return gig.eventDate || gig.event_date || "";
+  }
+
   function getGigsForDay(day) {
     const fullDate = getFullDate(day);
-    return gigs.filter((gig) => gig.eventDate === fullDate);
+    return gigs.filter((gig) => getGigDate(gig) === fullDate);
   }
 
   function getDayClasses(gigsForDay) {
@@ -199,144 +196,96 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
 
     setSelectedDate(fullDate);
     setSelectedDayGigs(gigsForDay);
-    setEditingGigId(null);
+    setEditingGig(null);
     setIsAddingGig(false);
-    resetForm();
 
     if (!gigsForDay.length) {
       setIsAddingGig(true);
-      setEventDate(fullDate);
     }
   }
 
   function closeModal() {
     setSelectedDate("");
     setSelectedDayGigs([]);
-    setEditingGigId(null);
+    setEditingGig(null);
     setIsAddingGig(false);
-    resetForm();
-  }
-
-  function applySavedClub(clubId) {
-    setSelectedClubId(clubId);
-
-    const club = savedClubs.find((item) => String(item.id) === String(clubId));
-    if (!club) return;
-
-    setVenue(club.club_name || "");
-    setCity(club.city || "");
-    setDistance(String(club.distance ?? ""));
-    setFee(String(club.default_fee ?? ""));
   }
 
   function startEditGig(gig) {
     setIsAddingGig(false);
-    setEditingGigId(gig.id);
-    setInputMode("new");
-    setSelectedClubId("");
-    setEventDate(gig.eventDate || "");
-    setVenue(gig.venue || "");
-    setCity(gig.city || "");
-    setDistance(String(gig.distance ?? ""));
-    setFee(String(gig.fee ?? ""));
-    setStatus(gig.status || "Planned");
-    setNotes(gig.notes || "");
+    setEditingGig(gig);
   }
 
   function startAddGigOnSelectedDate() {
-    setEditingGigId(null);
+    setEditingGig(null);
     setIsAddingGig(true);
-    resetForm();
-    setEventDate(selectedDate);
   }
 
   function cancelFormMode() {
-    setEditingGigId(null);
+    setEditingGig(null);
     setIsAddingGig(false);
-    resetForm();
-  }
 
-  async function saveGigEdit(e) {
-    e.preventDefault();
-
-    try {
-      const distanceNumber = Number(distance);
-      const feeNumber = Number(fee);
-      const travelCost = distanceNumber * costPerKm;
-      const netProfit = feeNumber - travelCost;
-
-      const updatedGig = await updateGig(editingGigId, {
-        event_date: eventDate,
-        venue,
-        city,
-        distance: distanceNumber,
-        fee: feeNumber,
-        status,
-        travel_cost: travelCost,
-        net_profit: netProfit,
-        notes,
-      });
-
-      const updatedGigs = gigs.map((gig) =>
-        gig.id === editingGigId ? updatedGig : gig
-      );
-
-      setGigs(updatedGigs);
-
-      if (eventDate !== selectedDate) {
-        closeModal();
-        return;
-      }
-
-      const refreshedSelectedDayGigs = updatedGigs.filter(
-        (gig) => gig.eventDate === selectedDate
-      );
-
-      setSelectedDayGigs(refreshedSelectedDayGigs);
-      setEditingGigId(null);
-      resetForm();
-    } catch (error) {
-      console.error("Failed to update gig:", error);
-      alert("Update failed.");
+    if (!selectedDayGigs.length) {
+      closeModal();
     }
   }
 
-  async function addGig(e) {
-    e.preventDefault();
-
+  async function handleSaveGig(gigData) {
     try {
-      const distanceNumber = Number(distance);
-      const feeNumber = Number(fee);
-      const travelCost = distanceNumber * costPerKm;
-      const netProfit = feeNumber - travelCost;
+      const payload = {
+        club_id: null,
+        event_date: gigData.eventDate,
+        venue: gigData.venue,
+        city: gigData.city,
+        distance: Number(gigData.distance || 0),
+        fee: Number(gigData.fee || 0),
+        status: gigData.status,
+        travel_cost: Number(gigData.travelCost || 0),
+        net_profit: Number(gigData.netProfit || 0),
+        notes: gigData.notes || "",
+        start_time: gigData.startTime || "22:00",
+        end_time: gigData.endTime || "04:00",
+        duration_hours: Number(gigData.durationHours || 6),
+      };
 
-      const newGig = await createGig({
-        club_id: inputMode === "saved" ? selectedClubId || null : null,
-        event_date: eventDate,
-        venue,
-        city,
-        distance: distanceNumber,
-        fee: feeNumber,
-        status,
-        travel_cost: travelCost,
-        net_profit: netProfit,
-        notes,
-      });
+      if (editingGig?.id) {
+        const updatedGig = await updateGig(editingGig.id, payload);
+
+        const updatedGigs = gigs.map((gig) =>
+          gig.id === editingGig.id ? updatedGig : gig
+        );
+
+        setGigs(updatedGigs);
+
+        const refreshedSelectedDayGigs = updatedGigs.filter(
+          (gig) => getGigDate(gig) === selectedDate
+        );
+
+        if (gigData.eventDate !== selectedDate) {
+          closeModal();
+          return;
+        }
+
+        setSelectedDayGigs(refreshedSelectedDayGigs);
+        setEditingGig(null);
+        return;
+      }
+
+      const newGig = await createGig(payload);
 
       const updatedGigs = [newGig, ...gigs];
       setGigs(updatedGigs);
 
       const refreshedSelectedDayGigs = updatedGigs.filter(
-        (gig) => gig.eventDate === eventDate
+        (gig) => getGigDate(gig) === gigData.eventDate
       );
 
-      setSelectedDate(eventDate);
+      setSelectedDate(gigData.eventDate);
       setSelectedDayGigs(refreshedSelectedDayGigs);
       setIsAddingGig(false);
-      resetForm();
     } catch (error) {
-      console.error("Failed to add gig:", error);
-      alert("Creating gig failed.");
+      console.error("Failed to save gig:", error);
+      alert("Saving gig failed.");
     }
   }
 
@@ -353,15 +302,13 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
       setGigs(updatedGigs);
 
       const refreshedSelectedDayGigs = updatedGigs.filter(
-        (gig) => gig.eventDate === selectedDate
+        (gig) => getGigDate(gig) === selectedDate
       );
 
       if (refreshedSelectedDayGigs.length === 0) {
         setSelectedDayGigs([]);
-        setEditingGigId(null);
+        setEditingGig(null);
         setIsAddingGig(true);
-        resetForm();
-        setEventDate(selectedDate);
         return;
       }
 
@@ -421,6 +368,7 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
             const gigsForDay = getGigsForDay(day);
             const hasGigs = gigsForDay.length > 0;
             const venuePreview = getVenuePreview(gigsForDay);
+            const totalHours = formatTotalHours(gigsForDay);
 
             return (
               <button
@@ -446,9 +394,17 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
                   </div>
 
                   {hasGigs && (
-                    <div className="mt-1 text-[8px] md:text-[10px] font-semibold leading-tight truncate text-white">
-                      {venuePreview}
-                    </div>
+                    <>
+                      <div className="mt-1 text-[8px] md:text-[10px] font-semibold leading-tight truncate text-white">
+                        {venuePreview}
+                      </div>
+
+                      {totalHours && (
+                        <div className="mt-0.5 text-[8px] md:text-[10px] leading-tight text-zinc-300 truncate">
+                          {totalHours}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </button>
@@ -465,7 +421,9 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
                 <h3 className="text-xl md:text-2xl font-semibold">
                   {selectedDayGigs.length > 0 ? "Booked day" : "Add gig"}
                 </h3>
-                <p className="text-zinc-400 text-sm md:text-base">{selectedDate}</p>
+                <p className="text-zinc-400 text-sm md:text-base">
+                  {selectedDate}
+                </p>
               </div>
 
               <button
@@ -477,35 +435,13 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
               </button>
             </div>
 
-            {editingGigId || isAddingGig ? (
+            {editingGig || isAddingGig ? (
               <GigForm
-                editingGigId={editingGigId}
-                inputMode={inputMode}
-                setInputMode={setInputMode}
+                gig={editingGig}
+                selectedDate={selectedDate}
                 savedClubs={savedClubs}
-                selectedClubId={selectedClubId}
-                setSelectedClubId={setSelectedClubId}
-                applySavedClub={applySavedClub}
-                eventDate={eventDate}
-                setEventDate={setEventDate}
-                venue={venue}
-                setVenue={setVenue}
-                city={city}
-                setCity={setCity}
-                distance={distance}
-                setDistance={setDistance}
-                fee={fee}
-                setFee={setFee}
-                status={status}
-                setStatus={setStatus}
-                notes={notes}
-                setNotes={setNotes}
-                handleSubmit={editingGigId ? saveGigEdit : addGig}
-                resetForm={resetForm}
-                embedded={true}
-                title={editingGigId ? "Edit gig" : "Add gig"}
-                submitLabel={editingGigId ? "Save changes" : "Add gig"}
-                cancelLabel="Cancel"
+                costPerKm={costPerKm}
+                onSave={handleSaveGig}
                 onCancel={cancelFormMode}
               />
             ) : (
@@ -520,50 +456,66 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
                   </button>
                 </div>
 
-                {selectedDayGigs.map((gig) => (
-                  <div
-                    key={gig.id}
-                    className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4"
-                  >
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div>
-                        <h4 className="text-lg font-semibold">{gig.venue}</h4>
-                        <p className="text-zinc-400">{gig.city}</p>
+                {selectedDayGigs.map((gig) => {
+                  const startTime = gig.startTime || gig.start_time;
+                  const endTime = gig.endTime || gig.end_time;
+                  const durationHours = gig.durationHours ?? gig.duration_hours;
+
+                  return (
+                    <div
+                      key={gig.id}
+                      className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4"
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div>
+                          <h4 className="text-lg font-semibold">{gig.venue}</h4>
+                          <p className="text-zinc-400">{gig.city}</p>
+                        </div>
+
+                        <div className="text-sm px-3 py-1 rounded-lg bg-zinc-800 border border-zinc-700">
+                          {gig.status}
+                        </div>
                       </div>
 
-                      <div className="text-sm px-3 py-1 rounded-lg bg-zinc-800 border border-zinc-700">
-                        {gig.status}
+                      <div className="text-sm text-zinc-300 space-y-1 mb-4">
+                        <p>Date: {getGigDate(gig)}</p>
+                        <p>Distance: {gig.distance} km</p>
+                        <p>Fee: {gig.fee} €</p>
+                        <p>
+                          Travel Cost: {Number(gig.travelCost || gig.travel_cost || 0).toFixed(2)} €
+                        </p>
+                        <p>
+                          Net Profit: {Number(gig.netProfit || gig.net_profit || 0).toFixed(2)} €
+                        </p>
+                        {(startTime || endTime) && (
+                          <p>
+                            Play Time: {startTime || "—"} - {endTime || "—"}
+                            {durationHours ? ` • ${durationHours}h` : ""}
+                          </p>
+                        )}
+                        {gig.notes && <p>Notes: {gig.notes}</p>}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => startEditGig(gig)}
+                          className="bg-blue-600 hover:bg-blue-500 transition rounded-lg px-4 py-2 text-sm font-medium"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => deleteGig(gig.id)}
+                          className="bg-red-600 hover:bg-red-500 transition rounded-lg px-4 py-2 text-sm font-medium"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
-
-                    <div className="text-sm text-zinc-300 space-y-1 mb-4">
-                      <p>Date: {gig.eventDate}</p>
-                      <p>Distance: {gig.distance} km</p>
-                      <p>Fee: {gig.fee} €</p>
-                      <p>Travel Cost: {Number(gig.travelCost || 0).toFixed(2)} €</p>
-                      <p>Net Profit: {Number(gig.netProfit || 0).toFixed(2)} €</p>
-                      {gig.notes && <p>Notes: {gig.notes}</p>}
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => startEditGig(gig)}
-                        className="bg-blue-600 hover:bg-blue-500 transition rounded-lg px-4 py-2 text-sm font-medium"
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => deleteGig(gig.id)}
-                        className="bg-red-600 hover:bg-red-500 transition rounded-lg px-4 py-2 text-sm font-medium"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

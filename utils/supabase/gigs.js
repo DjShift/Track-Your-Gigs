@@ -17,6 +17,9 @@ export function mapGigFromDb(row) {
     travelCost: Number(row.travel_cost ?? 0),
     netProfit: Number(row.net_profit ?? 0),
     notes: row.notes || "",
+    startTime: row.start_time || "22:00",
+    endTime: row.end_time || "04:00",
+    durationHours: Number(row.duration_hours ?? 6),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

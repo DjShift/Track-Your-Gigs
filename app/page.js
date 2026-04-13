@@ -169,7 +169,7 @@ export default function Home() {
 
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-bold mb-2 text-red-500">TEST APP PAGE</h1>
+            <h1 className="text-4xl font-bold mb-2">DJ Gigs Manager</h1>
             <p className="text-zinc-400">Your complete overview of DJ gigs.</p>
           </div>
 

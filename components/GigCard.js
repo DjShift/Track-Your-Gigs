@@ -57,12 +57,12 @@ export default function GigCard({ gig, onEdit, onDelete }) {
         </div>
 
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
-          <p className="text-zinc-400 mb-1">Travel</p>
+          <p className="text-zinc-400 mb-1">Travel by Car</p>
           <p className="font-semibold">€{travelCost.toFixed(2)}</p>
         </div>
 
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
-          <p className="text-zinc-400 mb-1">Extra</p>
+          <p className="text-zinc-400 mb-1">Other Costs</p>
           <p className="font-semibold">€{extraCosts.toFixed(2)}</p>
         </div>
 
@@ -82,17 +82,9 @@ export default function GigCard({ gig, onEdit, onDelete }) {
         €{totalCosts.toFixed(2)}
       </div>
 
-      {(startTime || endTime || durationLabel) && (
-        <div className="text-sm text-zinc-300">
-          <span className="text-zinc-400">Play Time: </span>
-          {startTime && endTime ? `${startTime} – ${endTime}` : "—"}
-          {durationLabel ? ` • ${durationLabel}` : ""}
-        </div>
-      )}
-
       {extraCostsNote ? (
         <div className="text-sm text-zinc-300">
-          <span className="text-zinc-400">Extra Costs Note: </span>
+          <span className="text-zinc-400">Other Costs Note: </span>
           {extraCostsNote}
         </div>
       ) : null}
@@ -100,6 +92,14 @@ export default function GigCard({ gig, onEdit, onDelete }) {
       {gig.notes ? (
         <div className="text-sm text-zinc-400">{gig.notes}</div>
       ) : null}
+
+      {(startTime || endTime || durationLabel) && (
+        <div className="text-sm text-zinc-300">
+          <span className="text-zinc-400">Play Time: </span>
+          {startTime && endTime ? `${startTime} – ${endTime}` : "—"}
+          {durationLabel ? ` • ${durationLabel}` : ""}
+        </div>
+      )}
 
       <div className="flex gap-2 pt-1">
         <button

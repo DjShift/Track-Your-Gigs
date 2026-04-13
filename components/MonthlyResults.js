@@ -116,8 +116,15 @@ export default function MonthlyResults({ gigs }) {
       return;
     }
 
-    setSelectedYear((currentYear) => {
-      if (currentYear && availableYears.includes(currentYear)) {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
+    setSelectedYear((currentYearState) => {
+      if (currentYearState && availableYears.includes(currentYearState)) {
+        return currentYearState;
+      }
+
+      if (availableYears.includes(currentYear)) {
         return currentYear;
       }
 
@@ -139,9 +146,18 @@ export default function MonthlyResults({ gigs }) {
       return;
     }
 
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
     const availableMonthIndexes = monthsInSelectedYear.map(
       (month) => month.monthIndex
     );
+
+    if (selectedYear === currentYear) {
+      setSelectedMonthIndex(currentMonth);
+      return;
+    }
 
     if (availableMonthIndexes.length === 0) {
       setSelectedMonthIndex(0);
@@ -168,6 +184,45 @@ export default function MonthlyResults({ gigs }) {
   const selectedMonthData = activeMonthKey
     ? groupedResults[activeMonthKey]
     : null;
+
+  const selectedYearSummary = useMemo(() => {
+    if (!selectedYear) return null;
+
+    const yearMonths = Object.values(groupedResults).filter(
+      (month) => month.year === selectedYear
+    );
+
+    if (yearMonths.length === 0) {
+      return {
+        grossIncome: 0,
+        netIncome: 0,
+        plannedCosts: 0,
+        actualCosts: 0,
+        plannedGigs: 0,
+        playedGigs: 0,
+      };
+    }
+
+    return yearMonths.reduce(
+      (acc, month) => {
+        acc.grossIncome += month.actualGrossIncome;
+        acc.netIncome += month.actualNetIncome;
+        acc.plannedCosts += month.plannedCosts;
+        acc.actualCosts += month.actualCosts;
+        acc.plannedGigs += month.plannedGigs;
+        acc.playedGigs += month.playedGigs;
+        return acc;
+      },
+      {
+        grossIncome: 0,
+        netIncome: 0,
+        plannedCosts: 0,
+        actualCosts: 0,
+        plannedGigs: 0,
+        playedGigs: 0,
+      }
+    );
+  }, [groupedResults, selectedYear]);
 
   function buildTopClub(filteredGigs) {
     const clubMap = filteredGigs.reduce((acc, gig) => {
@@ -646,6 +701,49 @@ export default function MonthlyResults({ gigs }) {
       </div>
 
       {renderActualNetIncomeChart()}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+          <p className="text-sm text-zinc-400 mb-2">Year Gross Income</p>
+          <p className="text-2xl md:text-3xl font-bold">
+            €{Number(selectedYearSummary?.grossIncome || 0).toFixed(2)}
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Played gigs: {Number(selectedYearSummary?.playedGigs || 0)}
+          </p>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+          <p className="text-sm text-zinc-400 mb-2">Year Net Income</p>
+          <p className="text-2xl md:text-3xl font-bold">
+            €{Number(selectedYearSummary?.netIncome || 0).toFixed(2)}
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Planned / Played: {Number(selectedYearSummary?.plannedGigs || 0)} /{" "}
+            {Number(selectedYearSummary?.playedGigs || 0)}
+          </p>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+          <p className="text-sm text-zinc-400 mb-2">Year Planned Costs</p>
+          <p className="text-2xl md:text-3xl font-bold">
+            €{Number(selectedYearSummary?.plannedCosts || 0).toFixed(2)}
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Planned gigs: {Number(selectedYearSummary?.plannedGigs || 0)}
+          </p>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+          <p className="text-sm text-zinc-400 mb-2">Year Actual Costs</p>
+          <p className="text-2xl md:text-3xl font-bold">
+            €{Number(selectedYearSummary?.actualCosts || 0).toFixed(2)}
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Played gigs: {Number(selectedYearSummary?.playedGigs || 0)}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -63,8 +63,7 @@ export default function GigForm({
         notes: gig.notes || "",
         startTime: gig.startTime || gig.start_time || "22:00",
         endTime: gig.endTime || gig.end_time || "04:00",
-        durationHours:
-          gig.durationHours ?? gig.duration_hours ?? 6,
+        durationHours: gig.durationHours ?? gig.duration_hours ?? 6,
       });
 
       const matchedClub = savedClubs.find(
@@ -180,235 +179,236 @@ export default function GigForm({
   const estimatedTravelCost =
     Number(formData.distance || 0) * Number(costPerKm || 0.25);
 
-  const estimatedNetProfit =
-    Number(formData.fee || 0) - estimatedTravelCost;
+  const estimatedNetProfit = Number(formData.fee || 0) - estimatedTravelCost;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-semibold mb-6">
-          {gig ? "Edit Gig" : "Add Gig"}
-        </h2>
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4">
+      <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-2xl max-h-[88vh] flex flex-col overflow-hidden">
+        <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-zinc-800">
+          <h2 className="text-xl sm:text-2xl font-semibold">
+            {gig ? "Edit Gig" : "Add Gig"}
+          </h2>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm text-zinc-400 mb-2">
-              Club Source
-            </label>
-            <div className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">
+                Club Source
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setClubMode("saved")}
+                  className={`rounded-xl px-4 py-2 text-sm border transition ${
+                    clubMode === "saved"
+                      ? "bg-purple-600 border-purple-500 text-white"
+                      : "bg-zinc-950 border-zinc-800 text-zinc-300"
+                  }`}
+                >
+                  Saved Club
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setClubMode("custom")}
+                  className={`rounded-xl px-4 py-2 text-sm border transition ${
+                    clubMode === "custom"
+                      ? "bg-purple-600 border-purple-500 text-white"
+                      : "bg-zinc-950 border-zinc-800 text-zinc-300"
+                  }`}
+                >
+                  New Venue
+                </button>
+              </div>
+            </div>
+
+            {clubMode === "saved" && (
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">
+                  Saved Club
+                </label>
+                <select
+                  value={formData.venue}
+                  onChange={handleClubSelect}
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                >
+                  <option value="">Select a club</option>
+                  {normalizedSavedClubs.map((club) => (
+                    <option key={club.clubName} value={club.clubName}>
+                      {club.clubName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">
+                  Event Date
+                </label>
+                <input
+                  type="date"
+                  name="eventDate"
+                  value={formData.eventDate}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">
+                  Venue
+                </label>
+                <input
+                  type="text"
+                  name="venue"
+                  value={formData.venue}
+                  onChange={handleChange}
+                  required
+                  disabled={clubMode === "saved"}
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">City</label>
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">
+                  Distance (km)
+                </label>
+                <input
+                  type="number"
+                  name="distance"
+                  value={formData.distance}
+                  onChange={handleChange}
+                  min="0"
+                  step="1"
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">
+                  Fee (€)
+                </label>
+                <input
+                  type="number"
+                  name="fee"
+                  value={formData.fee}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">
+                  Status
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                >
+                  <option value="Planned">Planned</option>
+                  <option value="Played">Played</option>
+                  <option value="Canceled">Canceled</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">
+                  Start Time
+                </label>
+                <input
+                  type="time"
+                  name="startTime"
+                  value={formData.startTime}
+                  onChange={handleChange}
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">
+                  End Time
+                </label>
+                <input
+                  type="time"
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={handleChange}
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                <div>
+                  <p className="text-zinc-400 mb-1">Duration</p>
+                  <p className="font-semibold text-white">
+                    {formData.durationHours} h
+                  </p>
+                </div>
+                <div>
+                  <p className="text-zinc-400 mb-1">Travel Cost</p>
+                  <p className="font-semibold text-white">
+                    €{estimatedTravelCost.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-zinc-400 mb-1">Net Profit</p>
+                  <p className="font-semibold text-white">
+                    €{estimatedNetProfit.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">Notes</label>
+              <textarea
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                rows={3}
+                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-zinc-800 bg-zinc-900 px-4 sm:px-6 py-4 sticky bottom-0">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
-                type="button"
-                onClick={() => setClubMode("saved")}
-                className={`rounded-xl px-4 py-2 text-sm border transition ${
-                  clubMode === "saved"
-                    ? "bg-purple-600 border-purple-500 text-white"
-                    : "bg-zinc-950 border-zinc-800 text-zinc-300"
-                }`}
+                type="submit"
+                className="rounded-xl bg-purple-600 px-5 py-3 text-white font-medium hover:bg-purple-500 transition"
               >
-                Saved Club
+                Save Gig
               </button>
 
               <button
                 type="button"
-                onClick={() => setClubMode("custom")}
-                className={`rounded-xl px-4 py-2 text-sm border transition ${
-                  clubMode === "custom"
-                    ? "bg-purple-600 border-purple-500 text-white"
-                    : "bg-zinc-950 border-zinc-800 text-zinc-300"
-                }`}
+                onClick={onCancel}
+                className="rounded-xl border border-zinc-700 px-5 py-3 text-zinc-200 font-medium hover:bg-zinc-800 transition"
               >
-                New Venue
+                Cancel
               </button>
             </div>
-          </div>
-
-          {clubMode === "saved" && (
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">
-                Saved Club
-              </label>
-              <select
-                value={formData.venue}
-                onChange={handleClubSelect}
-                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
-              >
-                <option value="">Select a club</option>
-                {normalizedSavedClubs.map((club) => (
-                  <option key={club.clubName} value={club.clubName}>
-                    {club.clubName}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">
-                Event Date
-              </label>
-              <input
-                type="date"
-                name="eventDate"
-                value={formData.eventDate}
-                onChange={handleChange}
-                required
-                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">
-                Venue
-              </label>
-              <input
-                type="text"
-                name="venue"
-                value={formData.venue}
-                onChange={handleChange}
-                required
-                disabled={clubMode === "saved"}
-                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white disabled:opacity-60"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">
-                City
-              </label>
-              <input
-                type="text"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">
-                Distance (km)
-              </label>
-              <input
-                type="number"
-                name="distance"
-                value={formData.distance}
-                onChange={handleChange}
-                min="0"
-                step="1"
-                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">
-                Fee (€)
-              </label>
-              <input
-                type="number"
-                name="fee"
-                value={formData.fee}
-                onChange={handleChange}
-                min="0"
-                step="0.01"
-                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">
-                Status
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
-              >
-                <option value="Planned">Planned</option>
-                <option value="Played">Played</option>
-                <option value="Canceled">Canceled</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">
-                Start Time
-              </label>
-              <input
-                type="time"
-                name="startTime"
-                value={formData.startTime}
-                onChange={handleChange}
-                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">
-                End Time
-              </label>
-              <input
-                type="time"
-                name="endTime"
-                value={formData.endTime}
-                onChange={handleChange}
-                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
-              />
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-              <div>
-                <p className="text-zinc-400 mb-1">Duration</p>
-                <p className="font-semibold text-white">
-                  {formData.durationHours} h
-                </p>
-              </div>
-              <div>
-                <p className="text-zinc-400 mb-1">Travel Cost</p>
-                <p className="font-semibold text-white">
-                  €{estimatedTravelCost.toFixed(2)}
-                </p>
-              </div>
-              <div>
-                <p className="text-zinc-400 mb-1">Net Profit</p>
-                <p className="font-semibold text-white">
-                  €{estimatedNetProfit.toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-zinc-400 mb-2">
-              Notes
-            </label>
-            <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              rows={4}
-              className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
-            />
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <button
-              type="submit"
-              className="rounded-xl bg-purple-600 px-5 py-3 text-white font-medium hover:bg-purple-500 transition"
-            >
-              Save Gig
-            </button>
-
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-xl border border-zinc-700 px-5 py-3 text-zinc-200 font-medium hover:bg-zinc-800 transition"
-            >
-              Cancel
-            </button>
           </div>
         </form>
       </div>

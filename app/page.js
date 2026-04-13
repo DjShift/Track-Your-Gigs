@@ -71,16 +71,21 @@ export default function Home() {
 
   async function handleSaveGig(gigData) {
     try {
+      const oneWayDistance = Number(gigData.distance || 0);
+      const roundTripDistance = oneWayDistance * 2;
+      const travelCost = roundTripDistance * costPerKm;
+      const netProfit = Number(gigData.fee || 0) - travelCost;
+
       const payload = {
         club_id: null,
         event_date: gigData.eventDate,
         venue: gigData.venue,
         city: gigData.city,
-        distance: Number(gigData.distance || 0),
+        distance: oneWayDistance,
         fee: Number(gigData.fee || 0),
         status: gigData.status,
-        travel_cost: Number(gigData.travelCost || 0),
-        net_profit: Number(gigData.netProfit || 0),
+        travel_cost: travelCost,
+        net_profit: netProfit,
         notes: gigData.notes || "",
         start_time: gigData.startTime || "22:00",
         end_time: gigData.endTime || "04:00",

@@ -232,16 +232,21 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
 
   async function handleSaveGig(gigData) {
     try {
+      const oneWayDistance = Number(gigData.distance || 0);
+      const roundTripDistance = oneWayDistance * 2;
+      const travelCost = roundTripDistance * costPerKm;
+      const netProfit = Number(gigData.fee || 0) - travelCost;
+
       const payload = {
         club_id: null,
         event_date: gigData.eventDate,
         venue: gigData.venue,
         city: gigData.city,
-        distance: Number(gigData.distance || 0),
+        distance: oneWayDistance,
         fee: Number(gigData.fee || 0),
         status: gigData.status,
-        travel_cost: Number(gigData.travelCost || 0),
-        net_profit: Number(gigData.netProfit || 0),
+        travel_cost: travelCost,
+        net_profit: netProfit,
         notes: gigData.notes || "",
         start_time: gigData.startTime || "22:00",
         end_time: gigData.endTime || "04:00",
@@ -479,13 +484,15 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
 
                       <div className="text-sm text-zinc-300 space-y-1 mb-4">
                         <p>Date: {getGigDate(gig)}</p>
-                        <p>Distance: {gig.distance} km</p>
+                        <p>Distance: {gig.distance} km one way</p>
                         <p>Fee: {gig.fee} €</p>
                         <p>
-                          Travel Cost: {Number(gig.travelCost || gig.travel_cost || 0).toFixed(2)} €
+                          Travel Cost:{" "}
+                          {Number(gig.travelCost || gig.travel_cost || 0).toFixed(2)} €
                         </p>
                         <p>
-                          Net Profit: {Number(gig.netProfit || gig.net_profit || 0).toFixed(2)} €
+                          Net Profit:{" "}
+                          {Number(gig.netProfit || gig.net_profit || 0).toFixed(2)} €
                         </p>
                         {(startTime || endTime) && (
                           <p>

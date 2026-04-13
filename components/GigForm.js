@@ -165,7 +165,7 @@ export default function GigForm({
 
     const fee = Number(formData.fee || 0);
     const distance = Number(formData.distance || 0);
-    const travelCost = distance * Number(costPerKm || 0.25);
+    const travelCost = distance * 2 * Number(costPerKm || 0.25);
     const netProfit = fee - travelCost;
 
     const payload = {
@@ -188,7 +188,7 @@ export default function GigForm({
   }
 
   const estimatedTravelCost =
-    Number(formData.distance || 0) * Number(costPerKm || 0.25);
+    Number(formData.distance || 0) * 2 * Number(costPerKm || 0.25);
 
   const estimatedNetProfit = Number(formData.fee || 0) - estimatedTravelCost;
 

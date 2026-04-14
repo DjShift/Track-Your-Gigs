@@ -49,6 +49,8 @@ export default function GigForm({
     durationHours: 6,
     extraCosts: 0,
     extraCostsNote: "",
+    calendarReminderEnabled: false,
+    calendarReminderMinutes: 30,
   });
 
   const [clubMode, setClubMode] = useState("saved");
@@ -79,6 +81,14 @@ export default function GigForm({
         durationHours: gig.durationHours ?? gig.duration_hours ?? 6,
         extraCosts: gig.extraCosts ?? gig.extra_costs ?? 0,
         extraCostsNote: gig.extraCostsNote ?? gig.extra_costs_note ?? "",
+        calendarReminderEnabled:
+          gig.calendarReminderEnabled ??
+          gig.calendar_reminder_enabled ??
+          false,
+        calendarReminderMinutes:
+          gig.calendarReminderMinutes ??
+          gig.calendar_reminder_minutes ??
+          30,
       });
 
       const matchedClub = savedClubs.find(
@@ -102,6 +112,8 @@ export default function GigForm({
       durationHours: 6,
       extraCosts: 0,
       extraCostsNote: "",
+      calendarReminderEnabled: false,
+      calendarReminderMinutes: 30,
     });
 
     setClubMode("saved");
@@ -129,11 +141,11 @@ export default function GigForm({
   }, [formData.startTime, formData.endTime]);
 
   function handleChange(e) {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
 
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   }
 
@@ -183,6 +195,8 @@ export default function GigForm({
       durationHours: Number(formData.durationHours || 0),
       extraCosts: Number(formData.extraCosts || 0),
       extraCostsNote: formData.extraCostsNote || "",
+      calendarReminderEnabled: Boolean(formData.calendarReminderEnabled),
+      calendarReminderMinutes: Number(formData.calendarReminderMinutes || 30),
     };
 
     onSave(payload);
@@ -412,6 +426,38 @@ export default function GigForm({
                   placeholder="e.g. parking, hotel..."
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
                 />
+              </div>
+
+              <div className="md:col-span-2 rounded-2xl bg-zinc-950 border border-zinc-800 p-4 space-y-3">
+                <label className="flex items-center gap-3 text-sm text-zinc-300">
+                  <input
+                    type="checkbox"
+                    name="calendarReminderEnabled"
+                    checked={formData.calendarReminderEnabled}
+                    onChange={handleChange}
+                    className="h-4 w-4 rounded border-zinc-700 bg-zinc-950"
+                  />
+                  Google Calendar reminder
+                </label>
+
+                {formData.calendarReminderEnabled && (
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-2">
+                      Reminder before event
+                    </label>
+                    <select
+                      name="calendarReminderMinutes"
+                      value={formData.calendarReminderMinutes}
+                      onChange={handleChange}
+                      className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                    >
+                      <option value="10">10 min</option>
+                      <option value="30">30 min</option>
+                      <option value="60">1 hour</option>
+                      <option value="120">2 hours</option>
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 

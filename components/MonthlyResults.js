@@ -732,9 +732,7 @@ export default function MonthlyResults({ gigs }) {
           <p className="text-2xl md:text-3xl font-bold">
             {Number(selectedYearSummary?.playedGigs || 0)}
           </p>
-          <p className="mt-2 text-xs text-zinc-500">
-            Actual results only
-          </p>
+          <p className="mt-2 text-xs text-zinc-500">Actual results only</p>
         </div>
       </div>
     </div>

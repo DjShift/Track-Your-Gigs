@@ -22,6 +22,7 @@ export function mapGigFromDb(row) {
     startTime: row.start_time || "22:00",
     endTime: row.end_time || "04:00",
     durationHours: Number(row.duration_hours ?? 6),
+    googleEventId: row.google_event_id || "",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

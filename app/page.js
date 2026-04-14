@@ -69,6 +69,83 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  async function createGoogleCalendarEvent(gigData) {
+    const response = await fetch("/api/google-calendar/create-event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        eventDate: gigData.eventDate,
+        venue: gigData.venue,
+        city: gigData.city,
+        notes: gigData.notes || "",
+        startTime: gigData.startTime || "22:00",
+        endTime: gigData.endTime || "04:00",
+        status: gigData.status || "Planned",
+        calendarReminderEnabled: Boolean(gigData.calendarReminderEnabled),
+        calendarReminderMinutes: Number(gigData.calendarReminderMinutes || 30),
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Google Calendar create failed.");
+    }
+
+    return data;
+  }
+
+  async function updateGoogleCalendarEvent(gigData, googleEventId) {
+    const response = await fetch("/api/google-calendar/update-event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        googleEventId,
+        eventDate: gigData.eventDate,
+        venue: gigData.venue,
+        city: gigData.city,
+        notes: gigData.notes || "",
+        startTime: gigData.startTime || "22:00",
+        endTime: gigData.endTime || "04:00",
+        status: gigData.status || "Planned",
+        calendarReminderEnabled: Boolean(gigData.calendarReminderEnabled),
+        calendarReminderMinutes: Number(gigData.calendarReminderMinutes || 30),
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Google Calendar update failed.");
+    }
+
+    return data;
+  }
+
+  async function deleteGoogleCalendarEvent(googleEventId) {
+    const response = await fetch("/api/google-calendar/delete-event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        googleEventId,
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Google Calendar delete failed.");
+    }
+
+    return data;
+  }
+
   async function handleSaveGig(gigData) {
     try {
       const oneWayDistance = Number(gigData.distance || 0);
@@ -99,15 +176,38 @@ export default function Home() {
       if (editingGig?.id) {
         const updatedGig = await updateGig(editingGig.id, payload);
 
+        let finalGig = updatedGig;
+
+        if (editingGig.googleEventId) {
+          await updateGoogleCalendarEvent(gigData, editingGig.googleEventId);
+
+          finalGig = await updateGig(editingGig.id, {
+            google_event_id: editingGig.googleEventId,
+          });
+        }
+
         setGigs((prev) =>
-          prev.map((gig) => (gig.id === editingGig.id ? updatedGig : gig))
+          prev.map((gig) => (gig.id === editingGig.id ? finalGig : gig))
         );
 
         closeGigForm();
         return;
       }
 
-      const newGig = await createGig(payload);
+      let newGig = await createGig(payload);
+
+      try {
+        const googleResult = await createGoogleCalendarEvent(gigData);
+
+        if (googleResult?.eventId) {
+          newGig = await updateGig(newGig.id, {
+            google_event_id: googleResult.eventId,
+          });
+        }
+      } catch (googleError) {
+        console.error("Google Calendar create sync failed:", googleError);
+        alert("Gig was saved, but Google Calendar sync failed.");
+      }
 
       setGigs((prev) => [newGig, ...prev]);
       closeGigForm();
@@ -117,16 +217,33 @@ export default function Home() {
     }
   }
 
-  async function handleDeleteGig(id) {
+  async function handleDeleteGig(gigOrId) {
+    const gig =
+      typeof gigOrId === "object"
+        ? gigOrId
+        : gigs.find((item) => item.id === gigOrId);
+
+    if (!gig) return;
+
     const confirmed = window.confirm("Are you sure you want to delete this gig?");
     if (!confirmed) return;
 
     try {
-      await deleteGigById(id);
+      if (gig.googleEventId) {
+        try {
+          await deleteGoogleCalendarEvent(gig.googleEventId);
+        } catch (googleError) {
+          console.error("Google Calendar delete sync failed:", googleError);
+          alert("Google Calendar delete failed. Gig was not deleted.");
+          return;
+        }
+      }
 
-      setGigs((prev) => prev.filter((gig) => gig.id !== id));
+      await deleteGigById(gig.id);
 
-      if (editingGig?.id === id) {
+      setGigs((prev) => prev.filter((item) => item.id !== gig.id));
+
+      if (editingGig?.id === gig.id) {
         closeGigForm();
       }
     } catch (error) {

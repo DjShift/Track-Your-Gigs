@@ -104,6 +104,87 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
     setCurrentMonth((prev) => prev + 1);
   }
 
+  function getGigDate(gig) {
+    return gig.eventDate || gig.event_date || "";
+  }
+
+  async function createGoogleCalendarEvent(gigData) {
+    const response = await fetch("/api/google-calendar/create-event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        eventDate: gigData.eventDate,
+        venue: gigData.venue,
+        city: gigData.city,
+        notes: gigData.notes || "",
+        startTime: gigData.startTime || "22:00",
+        endTime: gigData.endTime || "04:00",
+        status: gigData.status || "Planned",
+        calendarReminderEnabled: Boolean(gigData.calendarReminderEnabled),
+        calendarReminderMinutes: Number(gigData.calendarReminderMinutes || 30),
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Google Calendar create failed.");
+    }
+
+    return data;
+  }
+
+  async function updateGoogleCalendarEvent(gigData, googleEventId) {
+    const response = await fetch("/api/google-calendar/update-event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        googleEventId,
+        eventDate: gigData.eventDate,
+        venue: gigData.venue,
+        city: gigData.city,
+        notes: gigData.notes || "",
+        startTime: gigData.startTime || "22:00",
+        endTime: gigData.endTime || "04:00",
+        status: gigData.status || "Planned",
+        calendarReminderEnabled: Boolean(gigData.calendarReminderEnabled),
+        calendarReminderMinutes: Number(gigData.calendarReminderMinutes || 30),
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Google Calendar update failed.");
+    }
+
+    return data;
+  }
+
+  async function deleteGoogleCalendarEvent(googleEventId) {
+    const response = await fetch("/api/google-calendar/delete-event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        googleEventId,
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Google Calendar delete failed.");
+    }
+
+    return data;
+  }
+
   if (!mounted) {
     return (
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3 md:p-6">
@@ -139,10 +220,6 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
     const formattedMonth = String(currentMonth + 1).padStart(2, "0");
     const formattedDay = String(day).padStart(2, "0");
     return `${currentYear}-${formattedMonth}-${formattedDay}`;
-  }
-
-  function getGigDate(gig) {
-    return gig.eventDate || gig.event_date || "";
   }
 
   function getGigsForDay(day) {
@@ -260,8 +337,18 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
       if (editingGig?.id) {
         const updatedGig = await updateGig(editingGig.id, payload);
 
+        let finalGig = updatedGig;
+
+        if (editingGig.googleEventId) {
+          await updateGoogleCalendarEvent(gigData, editingGig.googleEventId);
+
+          finalGig = await updateGig(editingGig.id, {
+            google_event_id: editingGig.googleEventId,
+          });
+        }
+
         const updatedGigs = gigs.map((gig) =>
-          gig.id === editingGig.id ? updatedGig : gig
+          gig.id === editingGig.id ? finalGig : gig
         );
 
         setGigs(updatedGigs);
@@ -280,7 +367,20 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
         return;
       }
 
-      const newGig = await createGig(payload);
+      let newGig = await createGig(payload);
+
+      try {
+        const googleResult = await createGoogleCalendarEvent(gigData);
+
+        if (googleResult?.eventId) {
+          newGig = await updateGig(newGig.id, {
+            google_event_id: googleResult.eventId,
+          });
+        }
+      } catch (googleError) {
+        console.error("Google Calendar create sync failed:", googleError);
+        alert("Gig was saved, but Google Calendar sync failed.");
+      }
 
       const updatedGigs = [newGig, ...gigs];
       setGigs(updatedGigs);
@@ -298,20 +398,37 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
     }
   }
 
-  async function deleteGig(id) {
+  async function deleteGig(gigOrId) {
+    const gig =
+      typeof gigOrId === "object"
+        ? gigOrId
+        : gigs.find((item) => item.id === gigOrId);
+
+    if (!gig) return;
+
     const confirmed = window.confirm(
       "Are you sure you want to delete this gig?"
     );
     if (!confirmed) return;
 
     try {
-      await deleteGigById(id);
+      if (gig.googleEventId) {
+        try {
+          await deleteGoogleCalendarEvent(gig.googleEventId);
+        } catch (googleError) {
+          console.error("Google Calendar delete sync failed:", googleError);
+          alert("Google Calendar delete failed. Gig was not deleted.");
+          return;
+        }
+      }
 
-      const updatedGigs = gigs.filter((gig) => gig.id !== id);
+      await deleteGigById(gig.id);
+
+      const updatedGigs = gigs.filter((item) => item.id !== gig.id);
       setGigs(updatedGigs);
 
       const refreshedSelectedDayGigs = updatedGigs.filter(
-        (gig) => getGigDate(gig) === selectedDate
+        (item) => getGigDate(item) === selectedDate
       );
 
       if (refreshedSelectedDayGigs.length === 0) {
@@ -536,7 +653,7 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
 
                         <button
                           type="button"
-                          onClick={() => deleteGig(gig.id)}
+                          onClick={() => deleteGig(gig)}
                           className="bg-red-600 hover:bg-red-500 transition rounded-lg px-4 py-2 text-sm font-medium"
                         >
                           Delete

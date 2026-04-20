@@ -6,7 +6,6 @@ import MonthlyResults from "../../components/MonthlyResults";
 import { loadGigs } from "../../utils/supabase/gigs";
 
 export default function ResultsPage() {
-  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [gigs, setGigs] = useState([]);
 
@@ -14,12 +13,12 @@ export default function ResultsPage() {
     async function loadResultsData() {
       try {
         const gigsData = await loadGigs();
-        setGigs(gigsData);
+        setGigs(gigsData || []);
       } catch (error) {
         console.error("Failed to load gigs for results:", error);
+        setGigs([]);
       } finally {
         setLoading(false);
-        setMounted(true);
       }
     }
 
@@ -32,11 +31,12 @@ export default function ResultsPage() {
         <TopNav />
 
         <h1 className="text-4xl font-bold mb-2">Results</h1>
+
         <p className="text-zinc-400 mb-8">
           Monthly overview of your economic results.
         </p>
 
-        {!mounted || loading ? (
+        {loading ? (
           <p className="text-zinc-500">Loading results...</p>
         ) : (
           <MonthlyResults gigs={gigs} />

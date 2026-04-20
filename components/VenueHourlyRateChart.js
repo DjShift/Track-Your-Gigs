@@ -1,6 +1,6 @@
 "use client";
 
-const PLAYING_HOURS = 4;
+const DEFAULT_PLAYING_HOURS = 6;
 const BUFFER_HOURS = 1;
 const AVERAGE_SPEED_KMH = 60;
 
@@ -27,17 +27,29 @@ function getGigNetProfit(gig, costPerKm = 0.25) {
     return fee - (Number(savedTravelCost) || 0) - extraCosts;
   }
 
-  const distance = Number(gig.distance || 0);
-  const fallbackTravelCost = distance * Number(costPerKm || 0);
+  const distanceOneWay = Number(gig.distance || 0);
+  const fallbackTravelCost = distanceOneWay * 2 * Number(costPerKm || 0);
 
   return fee - fallbackTravelCost - extraCosts;
 }
 
-function getGigEstimatedHours(gig) {
-  const distance = Number(gig.distance || 0);
-  const travelHours = distance / AVERAGE_SPEED_KMH;
+function getGigPlayingHours(gig) {
+  const savedDuration = gig.durationHours ?? gig.duration_hours;
 
-  return PLAYING_HOURS + BUFFER_HOURS + travelHours;
+  if (savedDuration !== undefined && savedDuration !== null) {
+    const duration = Number(savedDuration);
+    return duration > 0 ? duration : DEFAULT_PLAYING_HOURS;
+  }
+
+  return DEFAULT_PLAYING_HOURS;
+}
+
+function getGigEstimatedHours(gig) {
+  const distanceOneWay = Number(gig.distance || 0);
+  const travelHours = (distanceOneWay * 2) / AVERAGE_SPEED_KMH;
+  const playingHours = getGigPlayingHours(gig);
+
+  return playingHours + BUFFER_HOURS + travelHours;
 }
 
 function buildVenueHourlyStats(gigs, selectedYear, costPerKm) {
@@ -46,7 +58,6 @@ function buildVenueHourlyStats(gigs, selectedYear, costPerKm) {
     if (gig.status !== "Played") return acc;
 
     const gigYear = new Date(gig.eventDate).getFullYear();
-
     if (gigYear !== selectedYear) return acc;
 
     const venue = gig.venue || "Unknown Club";
@@ -112,8 +123,8 @@ export default function VenueHourlyRateChart({
       </h2>
 
       <p className="text-sm text-zinc-400 mb-4">
-        Year: {selectedYear} · Net profit / estimated time · 4h playing + 1h
-        buffer + 60 km/h travel speed
+        Year: {selectedYear} · Net profit / estimated time · gig duration +
+        1h buffer + round trip at 60 km/h
       </p>
 
       <div className="overflow-x-auto">

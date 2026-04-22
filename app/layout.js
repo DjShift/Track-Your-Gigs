@@ -1,8 +1,18 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "DJ Gigs Manager",
+  title: "DJ Gig Tracker",
   description: "Manage DJ gigs, income, travel costs and calendar sync.",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({ children }) {
@@ -10,7 +20,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <div
-          className="fixed inset-0 pointer-events-none bg-cover bg-no-repeat bg-[position:50%_top] md:bg-[position:center_top]"
+          className="fixed inset-0 pointer-events-none bg-cover bg-no-repeat bg-[position:58%_top] md:bg-[position:center_top]"
           style={{
             zIndex: 0,
             backgroundImage:

@@ -327,7 +327,14 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
       const extraCosts = Number(gigData.extraCosts || 0);
       const totalCosts = travelCost + extraCosts;
       const netProfit = Number(gigData.fee || 0) - totalCosts;
-      const wantsCalendarSync = Boolean(gigData.calendarReminderEnabled);
+      const wantsCalendarSync = Boolean(gigData.syncToGoogleCalendar);
+      const wantsCalendarReminder =
+        wantsCalendarSync && Boolean(gigData.calendarReminderEnabled);
+
+      const calendarGigData = {
+        ...gigData,
+        calendarReminderEnabled: wantsCalendarReminder,
+      };
 
       const payload = {
         club_id: null,
@@ -345,7 +352,7 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
         start_time: gigData.startTime || "22:00",
         end_time: gigData.endTime || "04:00",
         duration_hours: Number(gigData.durationHours || 6),
-        calendar_reminder_enabled: wantsCalendarSync,
+        calendar_reminder_enabled: wantsCalendarReminder,
         calendar_reminder_minutes: Number(gigData.calendarReminderMinutes || 30),
       };
 
@@ -357,13 +364,17 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
         if (wantsCalendarSync) {
           try {
             if (existingGoogleEventId) {
-              await updateGoogleCalendarEvent(gigData, existingGoogleEventId);
+              await updateGoogleCalendarEvent(
+                calendarGigData,
+                existingGoogleEventId
+              );
 
               finalGig = await updateGig(editingGig.id, {
                 google_event_id: existingGoogleEventId,
               });
             } else {
-              const googleResult = await createGoogleCalendarEvent(gigData);
+              const googleResult =
+                await createGoogleCalendarEvent(calendarGigData);
 
               if (googleResult?.eventId) {
                 finalGig = await updateGig(editingGig.id, {
@@ -401,7 +412,7 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
 
       if (wantsCalendarSync) {
         try {
-          const googleResult = await createGoogleCalendarEvent(gigData);
+          const googleResult = await createGoogleCalendarEvent(calendarGigData);
 
           if (googleResult?.eventId) {
             newGig = await updateGig(newGig.id, {
@@ -674,6 +685,11 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
                           <p>
                             Play Time: {startTime || "—"} - {endTime || "—"}
                             {durationHours ? ` • ${durationHours}h` : ""}
+                          </p>
+                        )}
+                        {getGoogleEventId(gig) && (
+                          <p className="text-green-400">
+                            Synced to Google Calendar
                           </p>
                         )}
                         {gig.notes && <p>Notes: {gig.notes}</p>}

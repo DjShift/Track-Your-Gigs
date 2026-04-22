@@ -49,6 +49,7 @@ export default function GigForm({
     durationHours: 6,
     extraCosts: 0,
     extraCostsNote: "",
+    syncToGoogleCalendar: false,
     calendarReminderEnabled: false,
     calendarReminderMinutes: 30,
   });
@@ -68,8 +69,10 @@ export default function GigForm({
 
   useEffect(() => {
     if (gig) {
+      const hasGoogleEvent = Boolean(gig.googleEventId || gig.google_event_id);
+
       setFormData({
-        eventDate: gig.eventDate || "",
+        eventDate: gig.eventDate || gig.event_date || "",
         venue: gig.venue || "",
         city: gig.city || "",
         distance: gig.distance ?? "",
@@ -81,6 +84,7 @@ export default function GigForm({
         durationHours: gig.durationHours ?? gig.duration_hours ?? 6,
         extraCosts: gig.extraCosts ?? gig.extra_costs ?? 0,
         extraCostsNote: gig.extraCostsNote ?? gig.extra_costs_note ?? "",
+        syncToGoogleCalendar: hasGoogleEvent,
         calendarReminderEnabled:
           gig.calendarReminderEnabled ??
           gig.calendar_reminder_enabled ??
@@ -112,6 +116,7 @@ export default function GigForm({
       durationHours: 6,
       extraCosts: 0,
       extraCostsNote: "",
+      syncToGoogleCalendar: false,
       calendarReminderEnabled: false,
       calendarReminderMinutes: 30,
     });
@@ -143,10 +148,18 @@ export default function GigForm({
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setFormData((prev) => {
+      const next = {
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      };
+
+      if (name === "syncToGoogleCalendar" && !checked) {
+        next.calendarReminderEnabled = false;
+      }
+
+      return next;
+    });
   }
 
   function handleClubSelect(e) {
@@ -181,6 +194,10 @@ export default function GigForm({
   function handleSubmit(e) {
     e.preventDefault();
 
+    const wantsGoogleSync = Boolean(formData.syncToGoogleCalendar);
+    const wantsReminder =
+      wantsGoogleSync && Boolean(formData.calendarReminderEnabled);
+
     const payload = {
       ...gig,
       eventDate: formData.eventDate,
@@ -195,7 +212,8 @@ export default function GigForm({
       durationHours: Number(formData.durationHours || 0),
       extraCosts: Number(formData.extraCosts || 0),
       extraCostsNote: formData.extraCostsNote || "",
-      calendarReminderEnabled: Boolean(formData.calendarReminderEnabled),
+      syncToGoogleCalendar: wantsGoogleSync,
+      calendarReminderEnabled: wantsReminder,
       calendarReminderMinutes: Number(formData.calendarReminderMinutes || 30),
     };
 
@@ -329,7 +347,7 @@ export default function GigForm({
 
               <div>
                 <label className="block text-sm text-zinc-400 mb-2">
-                  Distance (km)
+                  Distance (km one way)
                 </label>
                 <input
                   type="number"
@@ -432,31 +450,46 @@ export default function GigForm({
                 <label className="flex items-center gap-3 text-sm text-zinc-300">
                   <input
                     type="checkbox"
-                    name="calendarReminderEnabled"
-                    checked={formData.calendarReminderEnabled}
+                    name="syncToGoogleCalendar"
+                    checked={formData.syncToGoogleCalendar}
                     onChange={handleChange}
                     className="h-4 w-4 rounded border-zinc-700 bg-zinc-950"
                   />
-                  Google Calendar reminder
+                  Sync to Google Calendar
                 </label>
 
-                {formData.calendarReminderEnabled && (
-                  <div>
-                    <label className="block text-sm text-zinc-400 mb-2">
-                      Reminder before event
+                {formData.syncToGoogleCalendar && (
+                  <>
+                    <label className="flex items-center gap-3 text-sm text-zinc-300">
+                      <input
+                        type="checkbox"
+                        name="calendarReminderEnabled"
+                        checked={formData.calendarReminderEnabled}
+                        onChange={handleChange}
+                        className="h-4 w-4 rounded border-zinc-700 bg-zinc-950"
+                      />
+                      Add Google Calendar reminder
                     </label>
-                    <select
-                      name="calendarReminderMinutes"
-                      value={formData.calendarReminderMinutes}
-                      onChange={handleChange}
-                      className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
-                    >
-                      <option value="10">10 min</option>
-                      <option value="30">30 min</option>
-                      <option value="60">1 hour</option>
-                      <option value="120">2 hours</option>
-                    </select>
-                  </div>
+
+                    {formData.calendarReminderEnabled && (
+                      <div>
+                        <label className="block text-sm text-zinc-400 mb-2">
+                          Reminder before event
+                        </label>
+                        <select
+                          name="calendarReminderMinutes"
+                          value={formData.calendarReminderMinutes}
+                          onChange={handleChange}
+                          className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                        >
+                          <option value="10">10 min</option>
+                          <option value="30">30 min</option>
+                          <option value="60">1 hour</option>
+                          <option value="120">2 hours</option>
+                        </select>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -469,18 +502,21 @@ export default function GigForm({
                     {formData.durationHours} h
                   </p>
                 </div>
+
                 <div>
                   <p className="text-zinc-400 mb-1">Travel Cost</p>
                   <p className="font-semibold text-white">
                     €{estimatedTravelCost.toFixed(2)}
                   </p>
                 </div>
+
                 <div>
                   <p className="text-zinc-400 mb-1">Extra Costs</p>
                   <p className="font-semibold text-white">
                     €{estimatedExtraCosts.toFixed(2)}
                   </p>
                 </div>
+
                 <div>
                   <p className="text-zinc-400 mb-1">Net Profit</p>
                   <p className="font-semibold text-white">

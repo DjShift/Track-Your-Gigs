@@ -92,6 +92,7 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
       setCurrentYear((prev) => prev - 1);
       return;
     }
+
     setCurrentMonth((prev) => prev - 1);
   }
 
@@ -101,11 +102,16 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
       setCurrentYear((prev) => prev + 1);
       return;
     }
+
     setCurrentMonth((prev) => prev + 1);
   }
 
   function getGigDate(gig) {
     return gig.eventDate || gig.event_date || "";
+  }
+
+  function getGoogleEventId(gig) {
+    return gig?.googleEventId || gig?.google_event_id || "";
   }
 
   async function createGoogleCalendarEvent(gigData) {
@@ -245,15 +251,21 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
 
   function makeShortVenueLabel(venueName) {
     if (!venueName) return "GIG";
+
     const cleaned = venueName.trim();
+
     if (cleaned.length <= 4) return cleaned.toUpperCase();
+
     return cleaned.slice(0, 4).toUpperCase();
   }
 
   function getVenuePreview(gigsForDay) {
     if (!gigsForDay.length) return "";
+
     const firstVenue = makeShortVenueLabel(gigsForDay[0].venue);
+
     if (gigsForDay.length === 1) return firstVenue;
+
     return `${firstVenue}+${gigsForDay.length - 1}`;
   }
 
@@ -315,6 +327,7 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
       const extraCosts = Number(gigData.extraCosts || 0);
       const totalCosts = travelCost + extraCosts;
       const netProfit = Number(gigData.fee || 0) - totalCosts;
+      const wantsCalendarSync = Boolean(gigData.calendarReminderEnabled);
 
       const payload = {
         club_id: null,
@@ -332,19 +345,36 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
         start_time: gigData.startTime || "22:00",
         end_time: gigData.endTime || "04:00",
         duration_hours: Number(gigData.durationHours || 6),
+        calendar_reminder_enabled: wantsCalendarSync,
+        calendar_reminder_minutes: Number(gigData.calendarReminderMinutes || 30),
       };
 
       if (editingGig?.id) {
-        const updatedGig = await updateGig(editingGig.id, payload);
+        const existingGoogleEventId = getGoogleEventId(editingGig);
 
-        let finalGig = updatedGig;
+        let finalGig = await updateGig(editingGig.id, payload);
 
-        if (editingGig.googleEventId) {
-          await updateGoogleCalendarEvent(gigData, editingGig.googleEventId);
+        if (wantsCalendarSync) {
+          try {
+            if (existingGoogleEventId) {
+              await updateGoogleCalendarEvent(gigData, existingGoogleEventId);
 
-          finalGig = await updateGig(editingGig.id, {
-            google_event_id: editingGig.googleEventId,
-          });
+              finalGig = await updateGig(editingGig.id, {
+                google_event_id: existingGoogleEventId,
+              });
+            } else {
+              const googleResult = await createGoogleCalendarEvent(gigData);
+
+              if (googleResult?.eventId) {
+                finalGig = await updateGig(editingGig.id, {
+                  google_event_id: googleResult.eventId,
+                });
+              }
+            }
+          } catch (googleError) {
+            console.error("Google Calendar edit sync failed:", googleError);
+            alert("Gig was saved, but Google Calendar sync failed.");
+          }
         }
 
         const updatedGigs = gigs.map((gig) =>
@@ -369,17 +399,19 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
 
       let newGig = await createGig(payload);
 
-      try {
-        const googleResult = await createGoogleCalendarEvent(gigData);
+      if (wantsCalendarSync) {
+        try {
+          const googleResult = await createGoogleCalendarEvent(gigData);
 
-        if (googleResult?.eventId) {
-          newGig = await updateGig(newGig.id, {
-            google_event_id: googleResult.eventId,
-          });
+          if (googleResult?.eventId) {
+            newGig = await updateGig(newGig.id, {
+              google_event_id: googleResult.eventId,
+            });
+          }
+        } catch (googleError) {
+          console.error("Google Calendar create sync failed:", googleError);
+          alert("Gig was saved, but Google Calendar sync failed.");
         }
-      } catch (googleError) {
-        console.error("Google Calendar create sync failed:", googleError);
-        alert("Gig was saved, but Google Calendar sync failed.");
       }
 
       const updatedGigs = [newGig, ...gigs];
@@ -409,12 +441,15 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
     const confirmed = window.confirm(
       "Are you sure you want to delete this gig?"
     );
+
     if (!confirmed) return;
 
     try {
-      if (gig.googleEventId) {
+      const googleEventId = getGoogleEventId(gig);
+
+      if (googleEventId) {
         try {
-          await deleteGoogleCalendarEvent(gig.googleEventId);
+          await deleteGoogleCalendarEvent(googleEventId);
         } catch (googleError) {
           console.error("Google Calendar delete sync failed:", googleError);
           alert("Google Calendar delete failed. Gig was not deleted.");
@@ -596,7 +631,9 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
                     >
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div>
-                          <h4 className="text-lg font-semibold">{gig.venue}</h4>
+                          <h4 className="text-lg font-semibold">
+                            {gig.venue}
+                          </h4>
                           <p className="text-zinc-400">{gig.city}</p>
                         </div>
 

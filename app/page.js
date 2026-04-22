@@ -28,6 +28,9 @@ export default function Home() {
   const [showGigForm, setShowGigForm] = useState(false);
   const [editingGig, setEditingGig] = useState(null);
 
+  const inputClass =
+    "w-full min-w-0 max-w-full rounded-xl bg-zinc-800 border border-zinc-700 px-3 sm:px-4 py-3 text-white text-sm sm:text-base appearance-none";
+
   async function loadInitialData() {
     setLoading(true);
 
@@ -39,7 +42,7 @@ export default function Home() {
       ]);
 
       setSavedClubs(clubs);
-      setGigs(gigsData);
+      setGigs(gigsData || []);
       setCostPerKm(cost);
     } catch (error) {
       console.error("Failed to load initial data:", error);
@@ -52,6 +55,10 @@ export default function Home() {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  function getGoogleEventId(gig) {
+    return gig?.googleEventId || gig?.google_event_id || "";
+  }
 
   function closeGigForm() {
     setShowGigForm(false);
@@ -155,6 +162,15 @@ export default function Home() {
       const totalCosts = travelCost + extraCosts;
       const netProfit = Number(gigData.fee || 0) - totalCosts;
 
+      const wantsCalendarSync = Boolean(gigData.syncToGoogleCalendar);
+      const wantsCalendarReminder =
+        wantsCalendarSync && Boolean(gigData.calendarReminderEnabled);
+
+      const calendarGigData = {
+        ...gigData,
+        calendarReminderEnabled: wantsCalendarReminder,
+      };
+
       const payload = {
         club_id: null,
         event_date: gigData.eventDate,
@@ -171,19 +187,40 @@ export default function Home() {
         start_time: gigData.startTime || "22:00",
         end_time: gigData.endTime || "04:00",
         duration_hours: Number(gigData.durationHours || 6),
+        calendar_reminder_enabled: wantsCalendarReminder,
+        calendar_reminder_minutes: Number(gigData.calendarReminderMinutes || 30),
       };
 
       if (editingGig?.id) {
-        const updatedGig = await updateGig(editingGig.id, payload);
+        const existingGoogleEventId = getGoogleEventId(editingGig);
 
-        let finalGig = updatedGig;
+        let finalGig = await updateGig(editingGig.id, payload);
 
-        if (editingGig.googleEventId) {
-          await updateGoogleCalendarEvent(gigData, editingGig.googleEventId);
+        if (wantsCalendarSync) {
+          try {
+            if (existingGoogleEventId) {
+              await updateGoogleCalendarEvent(
+                calendarGigData,
+                existingGoogleEventId
+              );
 
-          finalGig = await updateGig(editingGig.id, {
-            google_event_id: editingGig.googleEventId,
-          });
+              finalGig = await updateGig(editingGig.id, {
+                google_event_id: existingGoogleEventId,
+              });
+            } else {
+              const googleResult =
+                await createGoogleCalendarEvent(calendarGigData);
+
+              if (googleResult?.eventId) {
+                finalGig = await updateGig(editingGig.id, {
+                  google_event_id: googleResult.eventId,
+                });
+              }
+            }
+          } catch (googleError) {
+            console.error("Google Calendar edit sync failed:", googleError);
+            alert("Gig was saved, but Google Calendar sync failed.");
+          }
         }
 
         setGigs((prev) =>
@@ -196,17 +233,19 @@ export default function Home() {
 
       let newGig = await createGig(payload);
 
-      try {
-        const googleResult = await createGoogleCalendarEvent(gigData);
+      if (wantsCalendarSync) {
+        try {
+          const googleResult = await createGoogleCalendarEvent(calendarGigData);
 
-        if (googleResult?.eventId) {
-          newGig = await updateGig(newGig.id, {
-            google_event_id: googleResult.eventId,
-          });
+          if (googleResult?.eventId) {
+            newGig = await updateGig(newGig.id, {
+              google_event_id: googleResult.eventId,
+            });
+          }
+        } catch (googleError) {
+          console.error("Google Calendar create sync failed:", googleError);
+          alert("Gig was saved, but Google Calendar sync failed.");
         }
-      } catch (googleError) {
-        console.error("Google Calendar create sync failed:", googleError);
-        alert("Gig was saved, but Google Calendar sync failed.");
       }
 
       setGigs((prev) => [newGig, ...prev]);
@@ -229,9 +268,11 @@ export default function Home() {
     if (!confirmed) return;
 
     try {
-      if (gig.googleEventId) {
+      const googleEventId = getGoogleEventId(gig);
+
+      if (googleEventId) {
         try {
-          await deleteGoogleCalendarEvent(gig.googleEventId);
+          await deleteGoogleCalendarEvent(googleEventId);
         } catch (googleError) {
           console.error("Google Calendar delete sync failed:", googleError);
           alert("Google Calendar delete failed. Gig was not deleted.");
@@ -289,20 +330,22 @@ export default function Home() {
   }, [gigs, venueFilter, dateFrom, dateTo]);
 
   return (
-    <main className="min-h-screen bg-black text-white p-8">
+    <main className="min-h-screen bg-black text-white px-4 py-6 sm:p-8">
       <div className="max-w-3xl mx-auto">
         <TopNav />
 
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-bold mb-2">DJ Gigs Manager</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+              DJ Gigs Manager
+            </h1>
             <p className="text-zinc-400">Your complete overview of DJ gigs.</p>
           </div>
 
           <button
             type="button"
             onClick={openNewGigForm}
-            className="bg-purple-600 hover:bg-purple-500 transition rounded-xl px-5 py-3 text-sm font-medium"
+            className="bg-purple-600 hover:bg-purple-500 transition rounded-xl px-5 py-3 text-sm font-medium w-full sm:w-auto"
           >
             Add Gig
           </button>
@@ -323,28 +366,29 @@ export default function Home() {
           <p className="text-zinc-500">Loading gigs...</p>
         ) : (
           <>
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-6 space-y-4">
-              <h2 className="text-xl font-semibold">Filters</h2>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 mb-6 space-y-4 overflow-hidden">
+              <h2 className="text-xl sm:text-2xl font-semibold">Filters</h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block mb-1 text-sm text-zinc-300">
+              <div className="grid grid-cols-1 gap-3">
+                <div className="min-w-0">
+                  <label className="block mb-2 text-sm text-zinc-300">
                     Venue
                   </label>
+
                   <input
                     type="text"
                     value={venueFilter}
                     onChange={(e) => setVenueFilter(e.target.value)}
                     placeholder="Search venue..."
-                    className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-4 py-2 text-white"
+                    className={inputClass}
                   />
                 </div>
 
-                <div className="flex gap-2 items-end">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={handleThisMonth}
-                    className="bg-purple-600 hover:bg-purple-500 transition rounded-lg px-4 py-2 text-sm font-medium"
+                    className="bg-purple-600 hover:bg-purple-500 transition rounded-xl px-4 py-3 text-sm font-medium"
                   >
                     This month
                   </button>
@@ -352,34 +396,38 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="bg-zinc-700 hover:bg-zinc-600 transition rounded-lg px-4 py-2 text-sm font-medium"
+                    className="bg-zinc-700 hover:bg-zinc-600 transition rounded-xl px-4 py-3 text-sm font-medium"
                   >
                     Clear
                   </button>
                 </div>
 
-                <div>
-                  <label className="block mb-1 text-sm text-zinc-300">
-                    Date from
-                  </label>
-                  <input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-4 py-2 text-white"
-                  />
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="min-w-0">
+                    <label className="block mb-2 text-sm text-zinc-300">
+                      Date from
+                    </label>
 
-                <div>
-                  <label className="block mb-1 text-sm text-zinc-300">
-                    Date to
-                  </label>
-                  <input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-4 py-2 text-white"
-                  />
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div className="min-w-0">
+                    <label className="block mb-2 text-sm text-zinc-300">
+                      Date to
+                    </label>
+
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

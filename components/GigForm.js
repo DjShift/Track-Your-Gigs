@@ -458,30 +458,38 @@ export default function GigForm({
                 />
               </div>
 
-              <div className="md:col-span-2">
-                <div className="flex flex-wrap gap-3">
-                  <label className="flex items-center gap-3 rounded-2xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-sm text-zinc-300">
+              <div className="col-span-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="min-h-[72px] flex items-center gap-3 rounded-2xl bg-zinc-950 border border-zinc-800 px-3 py-3 text-sm text-zinc-300">
                     <input
                       type="checkbox"
                       name="syncToGoogleCalendar"
                       checked={formData.syncToGoogleCalendar}
                       onChange={handleChange}
-                      className="h-4 w-4 rounded border-zinc-700 bg-zinc-950"
+                      className="h-4 w-4 shrink-0 rounded border-zinc-700 bg-zinc-950"
                     />
-                    Sync to Google Calendar
+
+                    <span className="leading-tight">
+                      Sync to Google Calendar
+                    </span>
                   </label>
 
-                  {formData.syncToGoogleCalendar && (
-                    <label className="flex items-center gap-3 rounded-2xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-sm text-zinc-300">
+                  {formData.syncToGoogleCalendar ? (
+                    <label className="min-h-[72px] flex items-center gap-3 rounded-2xl bg-zinc-950 border border-zinc-800 px-3 py-3 text-sm text-zinc-300">
                       <input
                         type="checkbox"
                         name="calendarReminderEnabled"
                         checked={formData.calendarReminderEnabled}
                         onChange={handleChange}
-                        className="h-4 w-4 rounded border-zinc-700 bg-zinc-950"
+                        className="h-4 w-4 shrink-0 rounded border-zinc-700 bg-zinc-950"
                       />
-                      Add Google Calendar reminder
+
+                      <span className="leading-tight">
+                        Add Calendar reminder
+                      </span>
                     </label>
+                  ) : (
+                    <div className="min-h-[72px] rounded-2xl border border-zinc-900 bg-zinc-950/40" />
                   )}
                 </div>
 

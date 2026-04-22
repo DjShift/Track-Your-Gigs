@@ -114,6 +114,27 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
     return gig?.googleEventId || gig?.google_event_id || "";
   }
 
+  async function checkGoogleCalendarStatus() {
+    const response = await fetch("/api/google-calendar/status", {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        connected: false,
+        error: data?.error || "Failed to check Google Calendar status.",
+      };
+    }
+
+    return {
+      connected: Boolean(data?.connected),
+      error: data?.error || "",
+    };
+  }
+
   async function createGoogleCalendarEvent(gigData) {
     const response = await fetch("/api/google-calendar/create-event", {
       method: "POST",
@@ -327,6 +348,7 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
       const extraCosts = Number(gigData.extraCosts || 0);
       const totalCosts = travelCost + extraCosts;
       const netProfit = Number(gigData.fee || 0) - totalCosts;
+
       const wantsCalendarSync = Boolean(gigData.syncToGoogleCalendar);
       const wantsCalendarReminder =
         wantsCalendarSync && Boolean(gigData.calendarReminderEnabled);
@@ -362,29 +384,35 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
         let finalGig = await updateGig(editingGig.id, payload);
 
         if (wantsCalendarSync) {
-          try {
-            if (existingGoogleEventId) {
-              await updateGoogleCalendarEvent(
-                calendarGigData,
-                existingGoogleEventId
-              );
+          const calendarStatus = await checkGoogleCalendarStatus();
 
-              finalGig = await updateGig(editingGig.id, {
-                google_event_id: existingGoogleEventId,
-              });
-            } else {
-              const googleResult =
-                await createGoogleCalendarEvent(calendarGigData);
+          if (!calendarStatus.connected) {
+            alert("Gig saved. Connect Google Calendar in Settings to enable sync.");
+          } else {
+            try {
+              if (existingGoogleEventId) {
+                await updateGoogleCalendarEvent(
+                  calendarGigData,
+                  existingGoogleEventId
+                );
 
-              if (googleResult?.eventId) {
                 finalGig = await updateGig(editingGig.id, {
-                  google_event_id: googleResult.eventId,
+                  google_event_id: existingGoogleEventId,
                 });
+              } else {
+                const googleResult =
+                  await createGoogleCalendarEvent(calendarGigData);
+
+                if (googleResult?.eventId) {
+                  finalGig = await updateGig(editingGig.id, {
+                    google_event_id: googleResult.eventId,
+                  });
+                }
               }
+            } catch (googleError) {
+              console.error("Google Calendar edit sync failed:", googleError);
+              alert("Gig was saved, but Google Calendar sync failed.");
             }
-          } catch (googleError) {
-            console.error("Google Calendar edit sync failed:", googleError);
-            alert("Gig was saved, but Google Calendar sync failed.");
           }
         }
 
@@ -411,17 +439,24 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
       let newGig = await createGig(payload);
 
       if (wantsCalendarSync) {
-        try {
-          const googleResult = await createGoogleCalendarEvent(calendarGigData);
+        const calendarStatus = await checkGoogleCalendarStatus();
 
-          if (googleResult?.eventId) {
-            newGig = await updateGig(newGig.id, {
-              google_event_id: googleResult.eventId,
-            });
+        if (!calendarStatus.connected) {
+          alert("Gig saved. Connect Google Calendar in Settings to enable sync.");
+        } else {
+          try {
+            const googleResult =
+              await createGoogleCalendarEvent(calendarGigData);
+
+            if (googleResult?.eventId) {
+              newGig = await updateGig(newGig.id, {
+                google_event_id: googleResult.eventId,
+              });
+            }
+          } catch (googleError) {
+            console.error("Google Calendar create sync failed:", googleError);
+            alert("Gig was saved, but Google Calendar sync failed.");
           }
-        } catch (googleError) {
-          console.error("Google Calendar create sync failed:", googleError);
-          alert("Gig was saved, but Google Calendar sync failed.");
         }
       }
 

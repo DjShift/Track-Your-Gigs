@@ -10,7 +10,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <div
-          className="fixed inset-0 pointer-events-none bg-cover bg-no-repeat bg-[position:70%_top] md:bg-[position:center_top]"
+          className="fixed inset-0 pointer-events-none bg-cover bg-no-repeat bg-[position:50%_top] md:bg-[position:center_top]"
           style={{
             zIndex: 0,
             backgroundImage:

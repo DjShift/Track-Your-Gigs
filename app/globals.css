@@ -10,3 +10,25 @@ body {
   color: #fff;
   background-color: #000;
 }
+
+/* Pages use bg-black on main, but background layer is behind them */
+main.bg-black,
+.bg-black.min-h-screen {
+  background-color: transparent !important;
+}
+
+/* Shared transparent app panels */
+.app-panel {
+  background-color: rgba(24, 24, 27, 0.45) !important;
+  backdrop-filter: blur(1px);
+}
+
+/* Only inner dark boxes inside app panels */
+.app-panel .bg-zinc-950 {
+  background-color: rgba(9, 9, 11, 0.55) !important;
+}
+
+/* Only inner zinc-900 boxes inside app panels */
+.app-panel .bg-zinc-900 {
+  background-color: rgba(24, 24, 27, 0.55) !important;
+}

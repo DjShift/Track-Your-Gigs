@@ -57,7 +57,7 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
       ]);
 
       setSavedClubs(clubs);
-      setGigs(gigsData);
+      setGigs(gigsData || []);
       setCostPerKm(cost);
     } catch (error) {
       console.error("Failed to load calendar data:", error);
@@ -214,7 +214,7 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
 
   if (!mounted) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3 md:p-6">
+      <div className="app-panel border border-zinc-800 rounded-2xl p-3 md:p-6">
         <h2 className="text-lg md:text-2xl font-semibold">
           Loading calendar...
         </h2>
@@ -528,7 +528,7 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
 
   return (
     <>
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3 md:p-6">
+      <div className="app-panel border border-zinc-800 rounded-2xl p-3 md:p-6">
         <div className="flex items-center justify-between mb-3 md:mb-6 gap-3">
           <button
             type="button"

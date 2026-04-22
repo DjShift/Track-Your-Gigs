@@ -221,7 +221,9 @@ export default function Home() {
           const calendarStatus = await checkGoogleCalendarStatus();
 
           if (!calendarStatus.connected) {
-            alert("Gig saved. Connect Google Calendar in Settings to enable sync.");
+            alert(
+              "Gig saved. Connect Google Calendar in Settings to enable sync."
+            );
           } else {
             try {
               if (existingGoogleEventId) {
@@ -264,7 +266,9 @@ export default function Home() {
         const calendarStatus = await checkGoogleCalendarStatus();
 
         if (!calendarStatus.connected) {
-          alert("Gig saved. Connect Google Calendar in Settings to enable sync.");
+          alert(
+            "Gig saved. Connect Google Calendar in Settings to enable sync."
+          );
         } else {
           try {
             const googleResult =
@@ -401,7 +405,7 @@ export default function Home() {
           <p className="text-zinc-500">Loading gigs...</p>
         ) : (
           <>
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 mb-6 space-y-4 overflow-hidden">
+            <div className="app-panel border border-zinc-800 rounded-2xl p-4 sm:p-5 mb-6 space-y-4 overflow-hidden">
               <h2 className="text-xl sm:text-2xl font-semibold">Filters</h2>
 
               <div className="grid grid-cols-1 gap-3">

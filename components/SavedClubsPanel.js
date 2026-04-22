@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "../utils/supabase/client";
 
 export default function SavedClubsPanel() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [clubs, setClubs] = useState([]);
   const [editingClubId, setEditingClubId] = useState(null);
@@ -155,7 +155,7 @@ export default function SavedClubsPanel() {
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+    <div className="app-panel border border-zinc-800 rounded-2xl p-6">
       <h2 className="text-2xl font-semibold mb-4">Saved Clubs</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4 mb-8">
@@ -184,7 +184,9 @@ export default function SavedClubsPanel() {
         </div>
 
         <div>
-          <label className="block mb-1 text-sm text-zinc-300">Distance (km)</label>
+          <label className="block mb-1 text-sm text-zinc-300">
+            Distance (km)
+          </label>
           <input
             type="number"
             value={distance}
@@ -196,7 +198,9 @@ export default function SavedClubsPanel() {
         </div>
 
         <div>
-          <label className="block mb-1 text-sm text-zinc-300">Default Fee (€)</label>
+          <label className="block mb-1 text-sm text-zinc-300">
+            Default Fee (€)
+          </label>
           <input
             type="number"
             value={defaultFee}

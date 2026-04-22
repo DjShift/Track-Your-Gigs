@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createClient } from "../../utils/supabase/client";
 
 export default function LoginPage() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,46 +15,70 @@ export default function LoginPage() {
 
   async function handleLogin(e) {
     e.preventDefault();
+
     setErrorMessage("");
     setSuccessMessage("");
     setLoadingAction("login");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-    if (error) {
-      setErrorMessage(error.message || "Login failed.");
+      if (error) {
+        setErrorMessage(error.message || "Login failed.");
+        setLoadingAction("");
+        return;
+      }
+
+      if (!data?.session) {
+        setErrorMessage("Login failed. No session was created.");
+        setLoadingAction("");
+        return;
+      }
+
+      window.location.href = "/calendar";
+    } catch (error) {
+      console.error("Login failed:", error);
+      setErrorMessage("Unexpected login error.");
       setLoadingAction("");
-      return;
     }
-
-    window.location.href = "/";
   }
 
   async function handleRegister(e) {
     e.preventDefault();
+
     setErrorMessage("");
     setSuccessMessage("");
     setLoadingAction("register");
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: "https://djgigtracker.vercel.app/login",
-      },
-    });
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          emailRedirectTo:
+            process.env.NEXT_PUBLIC_SITE_URL ||
+            "https://djgigtracker.vercel.app/login",
+        },
+      });
 
-    if (error) {
-      setErrorMessage(error.message || "Registration failed.");
+      if (error) {
+        setErrorMessage(error.message || "Registration failed.");
+        setLoadingAction("");
+        return;
+      }
+
+      setSuccessMessage(
+        "Account created. Check your email and confirm your account."
+      );
       setLoadingAction("");
-      return;
+    } catch (error) {
+      console.error("Registration failed:", error);
+      setErrorMessage("Unexpected registration error.");
+      setLoadingAction("");
     }
-
-    setSuccessMessage("Account created. Check your email and confirm your account.");
-    setLoadingAction("");
   }
 
   return (
@@ -78,6 +102,7 @@ export default function LoginPage() {
             className="w-full p-3 bg-zinc-800 rounded-lg border border-zinc-700 text-white"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
             required
           />
 
@@ -87,6 +112,7 @@ export default function LoginPage() {
             className="w-full p-3 bg-zinc-800 rounded-lg border border-zinc-700 text-white"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
             required
           />
 

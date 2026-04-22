@@ -28,7 +28,7 @@ export default function GigCard({ gig, onEdit, onDelete }) {
   const extraCostsNote = gig.extraCostsNote || gig.extra_costs_note || "";
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
+    <div className="app-panel border border-zinc-800 rounded-2xl p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold">{gig.venue}</h3>

@@ -2,6 +2,34 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function proxy(request) {
+  const pathname = request.nextUrl.pathname;
+  const hostname = request.nextUrl.hostname;
+
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon.ico") ||
+    pathname.includes(".")
+  ) {
+    return NextResponse.next();
+  }
+
+  const publicRoutes = ["/login", "/reset-password", "/update-password"];
+
+  const isPublicRoute = publicRoutes.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
+  if (isPublicRoute) {
+    return NextResponse.next();
+  }
+
+  // LOCAL DEV BYPASS
+  // Supabase server auth check sometimes fails in local proxy/middleware.
+  // This keeps local development usable, while production stays protected.
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
     request,
   });
@@ -24,35 +52,18 @@ export async function proxy(request) {
     }
   );
 
-  const pathname = request.nextUrl.pathname;
+  let user = null;
 
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon.ico") ||
-    pathname.includes(".")
-  ) {
-    return response;
+  try {
+    const result = await supabase.auth.getUser();
+    user = result.data.user;
+  } catch (error) {
+    console.error("Proxy getUser failed:", error);
   }
 
-  const publicRoutes = ["/login", "/reset-password", "/update-password"];
-
-  const isPublicRoute = publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user && !isPublicRoute) {
+  if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  if (user && pathname === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 

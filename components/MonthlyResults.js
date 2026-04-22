@@ -319,7 +319,7 @@ export default function MonthlyResults({ gigs }) {
     const svgWidth = leftPadding + chartData.length * (barWidth + gap);
 
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+      <div className="app-panel border border-zinc-800 rounded-2xl p-6">
         <h2 className="text-2xl font-semibold mb-2">
           Actual Net Income by Month
         </h2>
@@ -461,7 +461,7 @@ export default function MonthlyResults({ gigs }) {
 
     return (
       <div className="space-y-4">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+        <div className="app-panel border border-zinc-800 rounded-2xl p-4">
           <p className="text-sm text-zinc-400 mb-3">Charts</p>
 
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -518,7 +518,7 @@ export default function MonthlyResults({ gigs }) {
 
   function renderTopClubCard(title, clubData, subtitle) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+      <div className="app-panel border border-zinc-800 rounded-2xl p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
             <h3 className="text-lg font-semibold">{title}</h3>
@@ -590,7 +590,7 @@ export default function MonthlyResults({ gigs }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+      <div className="app-panel border border-zinc-800 rounded-2xl p-6">
         <h2 className="text-2xl font-semibold mb-4">Monthly Results</h2>
 
         <div className="mb-5">
@@ -653,7 +653,7 @@ export default function MonthlyResults({ gigs }) {
       </div>
 
       {selectedMonthData ? (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+        <div className="app-panel border border-zinc-800 rounded-2xl p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <h2 className="text-2xl font-semibold">
               {selectedMonthData.label}
@@ -763,7 +763,7 @@ export default function MonthlyResults({ gigs }) {
           </div>
         </div>
       ) : (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+        <div className="app-panel border border-zinc-800 rounded-2xl p-6">
           <h2 className="text-2xl font-semibold mb-2">
             {selectedYear !== null && selectedMonthIndex !== null
               ? `${monthLongNames[selectedMonthIndex]} ${selectedYear}`
@@ -793,7 +793,7 @@ export default function MonthlyResults({ gigs }) {
       {renderChartsTabs()}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+        <div className="app-panel border border-zinc-800 rounded-2xl p-5">
           <p className="text-sm text-zinc-400 mb-2">
             Year Actual Gross Income
           </p>
@@ -807,7 +807,7 @@ export default function MonthlyResults({ gigs }) {
           </p>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+        <div className="app-panel border border-zinc-800 rounded-2xl p-5">
           <p className="text-sm text-zinc-400 mb-2">Year Actual Net Income</p>
 
           <p className="text-2xl md:text-3xl font-bold">
@@ -819,7 +819,7 @@ export default function MonthlyResults({ gigs }) {
           </p>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+        <div className="app-panel border border-zinc-800 rounded-2xl p-5">
           <p className="text-sm text-zinc-400 mb-2">Year Actual Costs</p>
 
           <p className="text-2xl md:text-3xl font-bold">
@@ -831,7 +831,7 @@ export default function MonthlyResults({ gigs }) {
           </p>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+        <div className="app-panel border border-zinc-800 rounded-2xl p-5">
           <p className="text-sm text-zinc-400 mb-2">Year Played Gigs</p>
 
           <p className="text-2xl md:text-3xl font-bold">

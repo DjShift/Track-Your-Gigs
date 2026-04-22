@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "../utils/supabase/client";
 
 export default function SettingsStorage() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [costPerKm, setCostPerKm] = useState("0.25");
   const [loading, setLoading] = useState(true);
@@ -96,7 +96,7 @@ export default function SettingsStorage() {
 
   if (loading) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+      <div className="app-panel border border-zinc-800 rounded-2xl p-6">
         <h2 className="text-2xl font-semibold mb-4">Travel Cost Settings</h2>
         <p className="text-zinc-500">Loading settings...</p>
       </div>
@@ -104,7 +104,7 @@ export default function SettingsStorage() {
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+    <div className="app-panel border border-zinc-800 rounded-2xl p-6">
       <h2 className="text-2xl font-semibold mb-4">Travel Cost Settings</h2>
 
       <div className="space-y-4">
@@ -112,6 +112,7 @@ export default function SettingsStorage() {
           <label className="block mb-1 text-sm text-zinc-300">
             Cost per km (€)
           </label>
+
           <input
             type="number"
             step="0.01"

@@ -104,7 +104,7 @@ export default function VenueHourlyRateChart({
 
   if (chartData.length === 0) {
     return (
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+      <section className="app-panel border border-zinc-800 rounded-2xl p-6">
         <h2 className="text-2xl font-semibold mb-2">
           Hourly Net Rate by Club
         </h2>
@@ -117,7 +117,7 @@ export default function VenueHourlyRateChart({
   }
 
   return (
-    <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+    <section className="app-panel border border-zinc-800 rounded-2xl p-6">
       <h2 className="text-2xl font-semibold mb-2">
         Hourly Net Rate by Club
       </h2>

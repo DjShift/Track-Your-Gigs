@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "../utils/supabase/client";
 
 export default function GoogleCalendarSyncPanel() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -50,7 +50,7 @@ export default function GoogleCalendarSyncPanel() {
 
   if (loading) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+      <div className="app-panel border border-zinc-800 rounded-2xl p-6">
         <h2 className="text-2xl font-semibold mb-4">Google Calendar Sync</h2>
         <p className="text-zinc-500">Loading sync status...</p>
       </div>
@@ -58,7 +58,7 @@ export default function GoogleCalendarSyncPanel() {
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+    <div className="app-panel border border-zinc-800 rounded-2xl p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-2xl font-semibold mb-2">Google Calendar Sync</h2>

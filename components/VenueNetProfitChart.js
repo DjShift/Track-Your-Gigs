@@ -78,7 +78,7 @@ export default function VenueNetProfitChart({
 
   if (chartData.length === 0) {
     return (
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+      <section className="app-panel border border-zinc-800 rounded-2xl p-6">
         <h2 className="text-2xl font-semibold mb-2">Net Income by Club</h2>
 
         <p className="text-sm text-zinc-400 mb-4">Year: {selectedYear}</p>
@@ -89,7 +89,7 @@ export default function VenueNetProfitChart({
   }
 
   return (
-    <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+    <section className="app-panel border border-zinc-800 rounded-2xl p-6">
       <h2 className="text-2xl font-semibold mb-2">Net Income by Club</h2>
 
       <p className="text-sm text-zinc-400 mb-4">

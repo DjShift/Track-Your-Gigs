@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 function calculateDurationHours(startTime, endTime) {
-  if (!startTime || !endTime) return 0;
+  if (!startTime || !endTime) return 6;
 
   const [startHour, startMinute] = startTime.split(":").map(Number);
   const [endHour, endMinute] = endTime.split(":").map(Number);
@@ -14,7 +14,7 @@ function calculateDurationHours(startTime, endTime) {
     Number.isNaN(endHour) ||
     Number.isNaN(endMinute)
   ) {
-    return 0;
+    return 6;
   }
 
   const startTotalMinutes = startHour * 60 + startMinute;
@@ -25,7 +25,9 @@ function calculateDurationHours(startTime, endTime) {
   }
 
   const durationMinutes = endTotalMinutes - startTotalMinutes;
-  return Math.round((durationMinutes / 60) * 100) / 100;
+  const durationHours = Math.round((durationMinutes / 60) * 100) / 100;
+
+  return durationHours > 0 ? durationHours : 6;
 }
 
 export default function GigForm({
@@ -69,7 +71,8 @@ export default function GigForm({
 
   useEffect(() => {
     if (gig) {
-      const hasGoogleEvent = Boolean(gig.googleEventId || gig.google_event_id);
+      const hasGoogleEvent =
+        Boolean(gig.googleEventId) || Boolean(gig.google_event_id);
 
       setFormData({
         eventDate: gig.eventDate || gig.event_date || "",
@@ -84,7 +87,10 @@ export default function GigForm({
         durationHours: gig.durationHours ?? gig.duration_hours ?? 6,
         extraCosts: gig.extraCosts ?? gig.extra_costs ?? 0,
         extraCostsNote: gig.extraCostsNote ?? gig.extra_costs_note ?? "",
-        syncToGoogleCalendar: hasGoogleEvent,
+        syncToGoogleCalendar:
+          gig.syncToGoogleCalendar ??
+          gig.sync_to_google_calendar ??
+          hasGoogleEvent,
         calendarReminderEnabled:
           gig.calendarReminderEnabled ??
           gig.calendar_reminder_enabled ??
@@ -145,21 +151,22 @@ export default function GigForm({
     }));
   }, [formData.startTime, formData.endTime]);
 
+  useEffect(() => {
+    if (!formData.syncToGoogleCalendar && formData.calendarReminderEnabled) {
+      setFormData((prev) => ({
+        ...prev,
+        calendarReminderEnabled: false,
+      }));
+    }
+  }, [formData.syncToGoogleCalendar, formData.calendarReminderEnabled]);
+
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
 
-    setFormData((prev) => {
-      const next = {
-        ...prev,
-        [name]: type === "checkbox" ? checked : value,
-      };
-
-      if (name === "syncToGoogleCalendar" && !checked) {
-        next.calendarReminderEnabled = false;
-      }
-
-      return next;
-    });
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   }
 
   function handleClubSelect(e) {
@@ -194,10 +201,6 @@ export default function GigForm({
   function handleSubmit(e) {
     e.preventDefault();
 
-    const wantsGoogleSync = Boolean(formData.syncToGoogleCalendar);
-    const wantsReminder =
-      wantsGoogleSync && Boolean(formData.calendarReminderEnabled);
-
     const payload = {
       ...gig,
       eventDate: formData.eventDate,
@@ -209,11 +212,13 @@ export default function GigForm({
       notes: formData.notes,
       startTime: formData.startTime,
       endTime: formData.endTime,
-      durationHours: Number(formData.durationHours || 0),
+      durationHours: Number(formData.durationHours || 6),
       extraCosts: Number(formData.extraCosts || 0),
       extraCostsNote: formData.extraCostsNote || "",
-      syncToGoogleCalendar: wantsGoogleSync,
-      calendarReminderEnabled: wantsReminder,
+      syncToGoogleCalendar: Boolean(formData.syncToGoogleCalendar),
+      calendarReminderEnabled:
+        Boolean(formData.syncToGoogleCalendar) &&
+        Boolean(formData.calendarReminderEnabled),
       calendarReminderMinutes: Number(formData.calendarReminderMinutes || 30),
     };
 
@@ -226,6 +231,11 @@ export default function GigForm({
   const estimatedExtraCosts = Number(formData.extraCosts || 0);
   const estimatedTotalCosts = estimatedTravelCost + estimatedExtraCosts;
   const estimatedNetProfit = Number(formData.fee || 0) - estimatedTotalCosts;
+
+  const inputClass =
+    "w-full min-w-0 rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white";
+  const boxClass =
+    "rounded-2xl bg-zinc-950 border border-zinc-800 p-4";
 
   return (
     <div
@@ -290,11 +300,10 @@ export default function GigForm({
                 <label className="block text-sm text-zinc-400 mb-2">
                   Saved Club
                 </label>
-
                 <select
                   value={formData.venue}
                   onChange={handleClubSelect}
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                  className={inputClass}
                 >
                   <option value="">Select a club</option>
                   {normalizedSavedClubs.map((club) => (
@@ -306,27 +315,25 @@ export default function GigForm({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
                   Event Date
                 </label>
-
                 <input
                   type="date"
                   name="eventDate"
                   value={formData.eventDate}
                   onChange={handleChange}
                   required
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                  className={inputClass}
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
                   Venue
                 </label>
-
                 <input
                   type="text"
                   name="venue"
@@ -334,27 +341,25 @@ export default function GigForm({
                   onChange={handleChange}
                   required
                   disabled={clubMode === "saved"}
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white disabled:opacity-60"
+                  className={`${inputClass} disabled:opacity-60`}
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">City</label>
-
                 <input
                   type="text"
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                  className={inputClass}
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
                   Distance (km one way)
                 </label>
-
                 <input
                   type="number"
                   name="distance"
@@ -362,15 +367,14 @@ export default function GigForm({
                   onChange={handleChange}
                   min="0"
                   step="1"
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                  className={inputClass}
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
                   Fee (€)
                 </label>
-
                 <input
                   type="number"
                   name="fee"
@@ -378,20 +382,19 @@ export default function GigForm({
                   onChange={handleChange}
                   min="0"
                   step="0.01"
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                  className={inputClass}
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
                   Status
                 </label>
-
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                  className={inputClass}
                 >
                   <option value="Planned">Planned</option>
                   <option value="Played">Played</option>
@@ -399,39 +402,36 @@ export default function GigForm({
                 </select>
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
                   Start Time
                 </label>
-
                 <input
                   type="time"
                   name="startTime"
                   value={formData.startTime}
                   onChange={handleChange}
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                  className={inputClass}
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
                   End Time
                 </label>
-
                 <input
                   type="time"
                   name="endTime"
                   value={formData.endTime}
                   onChange={handleChange}
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                  className={inputClass}
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
                   Extra Costs (€)
                 </label>
-
                 <input
                   type="number"
                   name="extraCosts"
@@ -439,84 +439,76 @@ export default function GigForm({
                   onChange={handleChange}
                   min="0"
                   step="0.01"
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                  className={inputClass}
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
                   Extra Costs Note
                 </label>
-
                 <input
                   type="text"
                   name="extraCostsNote"
                   value={formData.extraCostsNote}
                   onChange={handleChange}
                   placeholder="e.g. parking, hotel..."
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                  className={inputClass}
                 />
-              </div>
-
-              <div className="col-span-2">
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="min-h-[72px] flex items-center gap-3 rounded-2xl bg-zinc-950 border border-zinc-800 px-3 py-3 text-sm text-zinc-300">
-                    <input
-                      type="checkbox"
-                      name="syncToGoogleCalendar"
-                      checked={formData.syncToGoogleCalendar}
-                      onChange={handleChange}
-                      className="h-4 w-4 shrink-0 rounded border-zinc-700 bg-zinc-950"
-                    />
-
-                    <span className="leading-tight">
-                      Sync to Google Calendar
-                    </span>
-                  </label>
-
-                  {formData.syncToGoogleCalendar ? (
-                    <label className="min-h-[72px] flex items-center gap-3 rounded-2xl bg-zinc-950 border border-zinc-800 px-3 py-3 text-sm text-zinc-300">
-                      <input
-                        type="checkbox"
-                        name="calendarReminderEnabled"
-                        checked={formData.calendarReminderEnabled}
-                        onChange={handleChange}
-                        className="h-4 w-4 shrink-0 rounded border-zinc-700 bg-zinc-950"
-                      />
-
-                      <span className="leading-tight">
-                        Add Calendar reminder
-                      </span>
-                    </label>
-                  ) : (
-                    <div className="min-h-[72px] rounded-2xl border border-zinc-900 bg-zinc-950/40" />
-                  )}
-                </div>
-
-                {formData.syncToGoogleCalendar &&
-                  formData.calendarReminderEnabled && (
-                    <div className="mt-3 rounded-2xl bg-zinc-950 border border-zinc-800 p-4">
-                      <label className="block text-sm text-zinc-400 mb-2">
-                        Reminder before event
-                      </label>
-
-                      <select
-                        name="calendarReminderMinutes"
-                        value={formData.calendarReminderMinutes}
-                        onChange={handleChange}
-                        className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
-                      >
-                        <option value="10">10 min</option>
-                        <option value="30">30 min</option>
-                        <option value="60">1 hour</option>
-                        <option value="120">2 hours</option>
-                      </select>
-                    </div>
-                  )}
               </div>
             </div>
 
-            <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-4">
+            <div className={boxClass}>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center gap-3 rounded-2xl bg-black border border-zinc-800 p-4 text-sm text-zinc-200 cursor-pointer min-w-0">
+                  <input
+                    type="checkbox"
+                    name="syncToGoogleCalendar"
+                    checked={formData.syncToGoogleCalendar}
+                    onChange={handleChange}
+                    className="h-5 w-5 shrink-0 rounded border-zinc-700 bg-zinc-950"
+                  />
+                  <span className="leading-snug">Sync to Google Calendar</span>
+                </label>
+
+                {formData.syncToGoogleCalendar && (
+                  <label className="flex items-center gap-3 rounded-2xl bg-black border border-zinc-800 p-4 text-sm text-zinc-200 cursor-pointer min-w-0">
+                    <input
+                      type="checkbox"
+                      name="calendarReminderEnabled"
+                      checked={formData.calendarReminderEnabled}
+                      onChange={handleChange}
+                      className="h-5 w-5 shrink-0 rounded border-zinc-700 bg-zinc-950"
+                    />
+                    <span className="leading-snug">
+                      Add Google Calendar reminder
+                    </span>
+                  </label>
+                )}
+              </div>
+
+              {formData.syncToGoogleCalendar &&
+                formData.calendarReminderEnabled && (
+                  <div className="mt-3">
+                    <label className="block text-sm text-zinc-400 mb-2">
+                      Reminder before event
+                    </label>
+                    <select
+                      name="calendarReminderMinutes"
+                      value={formData.calendarReminderMinutes}
+                      onChange={handleChange}
+                      className={inputClass}
+                    >
+                      <option value="10">10 min</option>
+                      <option value="30">30 min</option>
+                      <option value="60">1 hour</option>
+                      <option value="120">2 hours</option>
+                    </select>
+                  </div>
+                )}
+            </div>
+
+            <div className={boxClass}>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
                   <p className="text-zinc-400 mb-1">Duration</p>
@@ -557,13 +549,12 @@ export default function GigForm({
 
             <div>
               <label className="block text-sm text-zinc-400 mb-2">Notes</label>
-
               <textarea
                 name="notes"
                 value={formData.notes}
                 onChange={handleChange}
                 rows={3}
-                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white"
+                className={inputClass}
               />
             </div>
           </div>

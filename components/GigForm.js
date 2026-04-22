@@ -233,9 +233,9 @@ export default function GigForm({
   const estimatedNetProfit = Number(formData.fee || 0) - estimatedTotalCosts;
 
   const inputClass =
-    "w-full min-w-0 rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 text-white";
-  const boxClass =
-    "rounded-2xl bg-zinc-950 border border-zinc-800 p-4";
+    "w-full min-w-0 max-w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 sm:px-4 py-3 text-white text-sm sm:text-base appearance-none";
+
+  const boxClass = "rounded-2xl bg-zinc-950 border border-zinc-800 p-4";
 
   return (
     <div
@@ -300,6 +300,7 @@ export default function GigForm({
                 <label className="block text-sm text-zinc-400 mb-2">
                   Saved Club
                 </label>
+
                 <select
                   value={formData.venue}
                   onChange={handleClubSelect}
@@ -315,11 +316,12 @@ export default function GigForm({
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
                   Event Date
                 </label>
+
                 <input
                   type="date"
                   name="eventDate"
@@ -334,6 +336,7 @@ export default function GigForm({
                 <label className="block text-sm text-zinc-400 mb-2">
                   Venue
                 </label>
+
                 <input
                   type="text"
                   name="venue"
@@ -347,6 +350,7 @@ export default function GigForm({
 
               <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">City</label>
+
                 <input
                   type="text"
                   name="city"
@@ -358,8 +362,9 @@ export default function GigForm({
 
               <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
-                  Distance (km one way)
+                  Distance
                 </label>
+
                 <input
                   type="number"
                   name="distance"
@@ -367,6 +372,7 @@ export default function GigForm({
                   onChange={handleChange}
                   min="0"
                   step="1"
+                  placeholder="km one way"
                   className={inputClass}
                 />
               </div>
@@ -375,6 +381,7 @@ export default function GigForm({
                 <label className="block text-sm text-zinc-400 mb-2">
                   Fee (€)
                 </label>
+
                 <input
                   type="number"
                   name="fee"
@@ -390,6 +397,7 @@ export default function GigForm({
                 <label className="block text-sm text-zinc-400 mb-2">
                   Status
                 </label>
+
                 <select
                   name="status"
                   value={formData.status}
@@ -406,6 +414,7 @@ export default function GigForm({
                 <label className="block text-sm text-zinc-400 mb-2">
                   Start Time
                 </label>
+
                 <input
                   type="time"
                   name="startTime"
@@ -419,6 +428,7 @@ export default function GigForm({
                 <label className="block text-sm text-zinc-400 mb-2">
                   End Time
                 </label>
+
                 <input
                   type="time"
                   name="endTime"
@@ -430,8 +440,9 @@ export default function GigForm({
 
               <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
-                  Extra Costs (€)
+                  Extra Costs
                 </label>
+
                 <input
                   type="number"
                   name="extraCosts"
@@ -439,20 +450,22 @@ export default function GigForm({
                   onChange={handleChange}
                   min="0"
                   step="0.01"
+                  placeholder="€"
                   className={inputClass}
                 />
               </div>
 
               <div className="min-w-0">
                 <label className="block text-sm text-zinc-400 mb-2">
-                  Extra Costs Note
+                  Extra Note
                 </label>
+
                 <input
                   type="text"
                   name="extraCostsNote"
                   value={formData.extraCostsNote}
                   onChange={handleChange}
-                  placeholder="e.g. parking, hotel..."
+                  placeholder="parking, hotel..."
                   className={inputClass}
                 />
               </div>
@@ -460,7 +473,7 @@ export default function GigForm({
 
             <div className={boxClass}>
               <div className="grid grid-cols-2 gap-3">
-                <label className="flex items-center gap-3 rounded-2xl bg-black border border-zinc-800 p-4 text-sm text-zinc-200 cursor-pointer min-w-0">
+                <label className="flex items-center gap-3 rounded-2xl bg-black border border-zinc-800 p-3 sm:p-4 text-xs sm:text-sm text-zinc-200 cursor-pointer min-w-0">
                   <input
                     type="checkbox"
                     name="syncToGoogleCalendar"
@@ -471,8 +484,8 @@ export default function GigForm({
                   <span className="leading-snug">Sync to Google Calendar</span>
                 </label>
 
-                {formData.syncToGoogleCalendar && (
-                  <label className="flex items-center gap-3 rounded-2xl bg-black border border-zinc-800 p-4 text-sm text-zinc-200 cursor-pointer min-w-0">
+                {formData.syncToGoogleCalendar ? (
+                  <label className="flex items-center gap-3 rounded-2xl bg-black border border-zinc-800 p-3 sm:p-4 text-xs sm:text-sm text-zinc-200 cursor-pointer min-w-0">
                     <input
                       type="checkbox"
                       name="calendarReminderEnabled"
@@ -480,10 +493,10 @@ export default function GigForm({
                       onChange={handleChange}
                       className="h-5 w-5 shrink-0 rounded border-zinc-700 bg-zinc-950"
                     />
-                    <span className="leading-snug">
-                      Add Google Calendar reminder
-                    </span>
+                    <span className="leading-snug">Add Calendar reminder</span>
                   </label>
+                ) : (
+                  <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40" />
                 )}
               </div>
 
@@ -493,6 +506,7 @@ export default function GigForm({
                     <label className="block text-sm text-zinc-400 mb-2">
                       Reminder before event
                     </label>
+
                     <select
                       name="calendarReminderMinutes"
                       value={formData.calendarReminderMinutes}
@@ -549,6 +563,7 @@ export default function GigForm({
 
             <div>
               <label className="block text-sm text-zinc-400 mb-2">Notes</label>
+
               <textarea
                 name="notes"
                 value={formData.notes}

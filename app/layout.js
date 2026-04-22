@@ -9,35 +9,16 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        {/* Mobile background */}
         <div
-          className="fixed inset-0 pointer-events-none md:hidden"
+          className="fixed inset-0 pointer-events-none bg-cover bg-no-repeat bg-[position:58%_top] md:bg-[position:center_top]"
           style={{
             zIndex: 0,
             backgroundImage:
               "linear-gradient(to bottom, rgba(0,0,0,0.08), rgba(0,0,0,0.48)), url('/images/dj-background.jpg')",
-            backgroundSize: "cover",
-            backgroundPosition: "72% top",
-            backgroundRepeat: "no-repeat",
             opacity: 0.9,
           }}
         />
 
-        {/* Desktop / tablet background */}
-        <div
-          className="fixed inset-0 pointer-events-none hidden md:block"
-          style={{
-            zIndex: 0,
-            backgroundImage:
-              "linear-gradient(to bottom, rgba(0,0,0,0.08), rgba(0,0,0,0.48)), url('/images/dj-background.jpg')",
-            backgroundSize: "cover",
-            backgroundPosition: "center top",
-            backgroundRepeat: "no-repeat",
-            opacity: 0.9,
-          }}
-        />
-
-        {/* Dark overlay */}
         <div
           className="fixed inset-0 pointer-events-none"
           style={{

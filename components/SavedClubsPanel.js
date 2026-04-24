@@ -192,7 +192,7 @@ export default function SavedClubsPanel() {
             value={distance}
             onChange={(e) => setDistance(e.target.value)}
             className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-4 py-2 text-white"
-            placeholder="e.g. 38"
+            placeholder="e.g. xx"
             required
           />
         </div>
@@ -206,7 +206,7 @@ export default function SavedClubsPanel() {
             value={defaultFee}
             onChange={(e) => setDefaultFee(e.target.value)}
             className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-4 py-2 text-white"
-            placeholder="e.g. 130"
+            placeholder="e.g. xxx"
             required
           />
         </div>

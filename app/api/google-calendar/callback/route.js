@@ -38,6 +38,20 @@ export async function GET(request) {
       );
     }
 
+    const { data: existingSettings } = await supabase
+      .from("settings")
+      .select(
+        "google_calendar_refresh_token, google_calendar_email"
+      )
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const existingRefreshToken =
+      existingSettings?.google_calendar_refresh_token || "";
+
+    const existingGoogleEmail =
+      existingSettings?.google_calendar_email || "";
+
     const redirectUri = `${siteUrl}/api/google-calendar/callback`;
 
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -66,26 +80,41 @@ export async function GET(request) {
     }
 
     const accessToken = tokenData.access_token || "";
-    const refreshToken = tokenData.refresh_token || "";
+    const refreshTokenFromGoogle = tokenData.refresh_token || "";
+    const finalRefreshToken = refreshTokenFromGoogle || existingRefreshToken;
     const expiresIn = Number(tokenData.expires_in || 0);
 
-    let googleEmail = "";
+    if (!accessToken) {
+      console.error("Google Calendar callback missing access token:", tokenData);
 
-    if (accessToken) {
-      const profileResponse = await fetch(
-        "https://www.googleapis.com/oauth2/v2/userinfo",
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          cache: "no-store",
-        }
+      return NextResponse.redirect(
+        new URL("/settings?calendar_error=missing_access_token", request.url)
       );
+    }
 
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
-        googleEmail = profileData.email || "";
+    if (!finalRefreshToken) {
+      console.error("Google Calendar callback missing refresh token:", tokenData);
+
+      return NextResponse.redirect(
+        new URL("/settings?calendar_error=missing_refresh_token", request.url)
+      );
+    }
+
+    let googleEmail = existingGoogleEmail;
+
+    const profileResponse = await fetch(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
       }
+    );
+
+    if (profileResponse.ok) {
+      const profileData = await profileResponse.json();
+      googleEmail = profileData.email || existingGoogleEmail;
     }
 
     const expiryDate =
@@ -99,7 +128,7 @@ export async function GET(request) {
         google_calendar_connected: true,
         google_calendar_email: googleEmail,
         google_calendar_access_token: accessToken,
-        google_calendar_refresh_token: refreshToken,
+        google_calendar_refresh_token: finalRefreshToken,
         google_calendar_token_expiry: expiryDate,
       },
       {

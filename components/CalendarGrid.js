@@ -387,7 +387,9 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
           const calendarStatus = await checkGoogleCalendarStatus();
 
           if (!calendarStatus.connected) {
-            alert("Gig saved. Connect Google Calendar in Settings to enable sync.");
+            alert(
+              "Gig saved. Connect Google Calendar in Settings to enable sync."
+            );
           } else {
             try {
               if (existingGoogleEventId) {
@@ -442,7 +444,9 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
         const calendarStatus = await checkGoogleCalendarStatus();
 
         if (!calendarStatus.connected) {
-          alert("Gig saved. Connect Google Calendar in Settings to enable sync.");
+          alert(
+            "Gig saved. Connect Google Calendar in Settings to enable sync."
+          );
         } else {
           try {
             const googleResult =
@@ -490,6 +494,8 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
 
     if (!confirmed) return;
 
+    let googleDeleteFailed = false;
+
     try {
       const googleEventId = getGoogleEventId(gig);
 
@@ -498,8 +504,7 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
           await deleteGoogleCalendarEvent(googleEventId);
         } catch (googleError) {
           console.error("Google Calendar delete sync failed:", googleError);
-          alert("Google Calendar delete failed. Gig was not deleted.");
-          return;
+          googleDeleteFailed = true;
         }
       }
 
@@ -512,14 +517,21 @@ export default function CalendarGrid({ gigs = [], setGigs }) {
         (item) => getGigDate(item) === selectedDate
       );
 
+      if (editingGig?.id === gig.id) {
+        setEditingGig(null);
+      }
+
       if (refreshedSelectedDayGigs.length === 0) {
         setSelectedDayGigs([]);
         setEditingGig(null);
         setIsAddingGig(true);
-        return;
+      } else {
+        setSelectedDayGigs(refreshedSelectedDayGigs);
       }
 
-      setSelectedDayGigs(refreshedSelectedDayGigs);
+      if (googleDeleteFailed) {
+        alert("Gig was deleted, but Google Calendar event could not be removed.");
+      }
     } catch (error) {
       console.error("Failed to delete gig:", error);
       alert("Delete failed.");

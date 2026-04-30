@@ -209,7 +209,9 @@ export default function Home() {
         end_time: gigData.endTime || "04:00",
         duration_hours: Number(gigData.durationHours || 6),
         calendar_reminder_enabled: wantsCalendarReminder,
-        calendar_reminder_minutes: Number(gigData.calendarReminderMinutes || 30),
+        calendar_reminder_minutes: Number(
+          gigData.calendarReminderMinutes || 30
+        ),
       };
 
       if (editingGig?.id) {
@@ -302,20 +304,22 @@ export default function Home() {
 
     if (!gig) return;
 
-    const confirmed = window.confirm("Are you sure you want to delete this gig?");
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this gig?"
+    );
 
     if (!confirmed) return;
 
     try {
       const googleEventId = getGoogleEventId(gig);
+      let googleDeleteFailed = false;
 
       if (googleEventId) {
         try {
           await deleteGoogleCalendarEvent(googleEventId);
         } catch (googleError) {
           console.error("Google Calendar delete sync failed:", googleError);
-          alert("Google Calendar delete failed. Gig was not deleted.");
-          return;
+          googleDeleteFailed = true;
         }
       }
 
@@ -325,6 +329,12 @@ export default function Home() {
 
       if (editingGig?.id === gig.id) {
         closeGigForm();
+      }
+
+      if (googleDeleteFailed) {
+        alert(
+          "Gig was deleted, but Google Calendar event could not be removed."
+        );
       }
     } catch (error) {
       console.error("Failed to delete gig:", error);

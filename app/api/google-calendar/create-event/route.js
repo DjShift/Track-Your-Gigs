@@ -5,6 +5,10 @@ async function refreshGoogleAccessToken(refreshToken) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
+  if (!clientId || !clientSecret) {
+    throw new Error("Missing Google OAuth environment variables.");
+  }
+
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: {
@@ -19,16 +23,49 @@ async function refreshGoogleAccessToken(refreshToken) {
     cache: "no-store",
   });
 
-  const data = await response.json();
+  const data = await response.json().catch(() => null);
 
-  if (!response.ok) {
-    throw new Error(data?.error || "Failed to refresh Google access token.");
+  if (!response.ok || !data?.access_token) {
+    const error = new Error(
+      data?.error_description ||
+        data?.error ||
+        "Failed to refresh Google access token."
+    );
+
+    error.status = response.status;
+    error.google = data;
+
+    throw error;
   }
 
   return {
     accessToken: data.access_token,
     expiresIn: Number(data.expires_in || 0),
   };
+}
+
+async function saveRefreshedAccessToken(supabase, userId, refreshed) {
+  const newExpiry =
+    refreshed.expiresIn > 0
+      ? new Date(Date.now() + refreshed.expiresIn * 1000).toISOString()
+      : null;
+
+  await supabase
+    .from("settings")
+    .update({
+      google_calendar_access_token: refreshed.accessToken,
+      google_calendar_token_expiry: newExpiry,
+    })
+    .eq("user_id", userId);
+}
+
+async function markGoogleCalendarDisconnected(supabase, userId) {
+  await supabase
+    .from("settings")
+    .update({
+      google_calendar_connected: false,
+    })
+    .eq("user_id", userId);
 }
 
 function normalizeTime(value, fallback) {
@@ -78,6 +115,33 @@ function formatLocalDate(date) {
   return `${year}-${month}-${day}`;
 }
 
+async function createGoogleCalendarEvent(accessToken, eventPayload) {
+  const response = await fetch(
+    "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(eventPayload),
+      cache: "no-store",
+    }
+  );
+
+  const data = await response.json().catch(() => null);
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    data,
+  };
+}
+
+function isGooglePermissionProblem(status) {
+  return status === 401 || status === 403;
+}
+
 export async function POST(request) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -123,6 +187,8 @@ export async function POST(request) {
       .maybeSingle();
 
     if (settingsError) {
+      console.error("Failed to load Google Calendar settings:", settingsError);
+
       return NextResponse.json(
         { error: "Failed to load Google Calendar settings." },
         { status: 500 }
@@ -138,6 +204,7 @@ export async function POST(request) {
 
     let accessToken = settings.google_calendar_access_token || "";
     const refreshToken = settings.google_calendar_refresh_token || "";
+
     const tokenExpiry = settings.google_calendar_token_expiry
       ? new Date(settings.google_calendar_token_expiry).getTime()
       : 0;
@@ -148,27 +215,35 @@ export async function POST(request) {
 
     if (needsRefresh) {
       if (!refreshToken) {
+        await markGoogleCalendarDisconnected(supabase, user.id);
+
         return NextResponse.json(
-          { error: "Missing Google refresh token." },
-          { status: 400 }
+          {
+            error:
+              "Google Calendar reconnect required. Missing refresh token.",
+          },
+          { status: 401 }
         );
       }
 
-      const refreshed = await refreshGoogleAccessToken(refreshToken);
-      accessToken = refreshed.accessToken;
+      try {
+        const refreshed = await refreshGoogleAccessToken(refreshToken);
+        accessToken = refreshed.accessToken;
 
-      const newExpiry =
-        refreshed.expiresIn > 0
-          ? new Date(Date.now() + refreshed.expiresIn * 1000).toISOString()
-          : null;
+        await saveRefreshedAccessToken(supabase, user.id, refreshed);
+      } catch (refreshError) {
+        console.error("Google Calendar token refresh failed:", refreshError);
 
-      await supabase
-        .from("settings")
-        .update({
-          google_calendar_access_token: accessToken,
-          google_calendar_token_expiry: newExpiry,
-        })
-        .eq("user_id", user.id);
+        await markGoogleCalendarDisconnected(supabase, user.id);
+
+        return NextResponse.json(
+          {
+            error:
+              "Google Calendar reconnect required. Token refresh failed.",
+          },
+          { status: 401 }
+        );
+      }
     }
 
     const timeZone = "Europe/Bratislava";
@@ -187,60 +262,104 @@ export async function POST(request) {
       startTime,
       timeZone
     );
+
     const endDateTime = buildRFC3339InTimeZone(endDate, endTime, timeZone);
 
-    const googleEventResponse = await fetch(
-      "https://www.googleapis.com/calendar/v3/calendars/primary/events",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          summary:
-            status === "Canceled"
-              ? `Canceled DJ Gig - ${venue}`
-              : `DJ Gig - ${venue}`,
-          location: city || "",
-          description: [
-            city ? `City: ${city}` : "",
-            status ? `Status: ${status}` : "",
-            notes ? `Notes: ${notes}` : "",
-          ]
-            .filter(Boolean)
-            .join("\n"),
-          start: {
-            dateTime: startDateTime,
-          },
-          end: {
-            dateTime: endDateTime,
-          },
-          reminders: {
-            useDefault: false,
-            overrides: calendarReminderEnabled
-              ? [
-                  {
-                    method: "popup",
-                    minutes: calendarReminderMinutes,
-                  },
-                ]
-              : [],
-          },
-        }),
-        cache: "no-store",
-      }
+    const eventPayload = {
+      summary:
+        status === "Canceled"
+          ? `Canceled DJ Gig - ${venue}`
+          : `DJ Gig - ${venue}`,
+      location: city || "",
+      description: [
+        city ? `City: ${city}` : "",
+        status ? `Status: ${status}` : "",
+        notes ? `Notes: ${notes}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      start: {
+        dateTime: startDateTime,
+        timeZone,
+      },
+      end: {
+        dateTime: endDateTime,
+        timeZone,
+      },
+      reminders: {
+        useDefault: false,
+        overrides: calendarReminderEnabled
+          ? [
+              {
+                method: "popup",
+                minutes: calendarReminderMinutes,
+              },
+            ]
+          : [],
+      },
+    };
+
+    let googleResult = await createGoogleCalendarEvent(
+      accessToken,
+      eventPayload
     );
 
-    const googleEventData = await googleEventResponse.json();
+    if (!googleResult.ok && googleResult.status === 401 && refreshToken) {
+      try {
+        const refreshed = await refreshGoogleAccessToken(refreshToken);
+        accessToken = refreshed.accessToken;
 
-    if (!googleEventResponse.ok) {
-      console.error("Google Calendar event creation failed:", googleEventData);
+        await saveRefreshedAccessToken(supabase, user.id, refreshed);
+
+        googleResult = await createGoogleCalendarEvent(
+          accessToken,
+          eventPayload
+        );
+      } catch (retryRefreshError) {
+        console.error(
+          "Google Calendar retry refresh failed:",
+          retryRefreshError
+        );
+
+        await markGoogleCalendarDisconnected(supabase, user.id);
+
+        return NextResponse.json(
+          {
+            error:
+              "Google Calendar reconnect required. Token retry failed.",
+          },
+          { status: 401 }
+        );
+      }
+    }
+
+    if (!googleResult.ok) {
+      console.error("Google Calendar event creation failed:", googleResult.data);
+
+      if (isGooglePermissionProblem(googleResult.status)) {
+        await markGoogleCalendarDisconnected(supabase, user.id);
+
+        return NextResponse.json(
+          {
+            error:
+              "Google Calendar reconnect required. Permission problem.",
+            google: googleResult.data,
+            debug: {
+              eventDate,
+              startTime,
+              endTime,
+              startDateTime,
+              endDateTime,
+            },
+          },
+          { status: 403 }
+        );
+      }
 
       return NextResponse.json(
         {
           error: "Failed to create Google Calendar event.",
-          google: googleEventData,
+          google: googleResult.data,
           debug: {
             eventDate,
             startTime,
@@ -255,8 +374,8 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      eventId: googleEventData.id,
-      htmlLink: googleEventData.htmlLink,
+      eventId: googleResult.data?.id,
+      htmlLink: googleResult.data?.htmlLink,
     });
   } catch (error) {
     console.error("Create Google Calendar event route failed:", error);

@@ -44,6 +44,29 @@ export default function MonthlyResults({ gigs }) {
     )}`;
   }
 
+  function formatMoney(value) {
+    return `€${Number(value || 0).toFixed(2)}`;
+  }
+
+  function ResultMetricCard({ label, value, tone = "default" }) {
+    const toneClass =
+      tone === "actual"
+        ? "border-purple-500/30 bg-purple-950/20"
+        : "border-zinc-800 bg-zinc-950/80";
+
+    return (
+      <div className={`rounded-2xl border ${toneClass} p-3 sm:p-5`}>
+        <p className="text-[11px] sm:text-sm text-zinc-400 mb-2 leading-tight min-h-[28px] sm:min-h-0">
+          {label}
+        </p>
+
+        <p className="text-[1.45rem] leading-none sm:text-3xl font-bold tracking-tight text-white break-words">
+          {formatMoney(value)}
+        </p>
+      </div>
+    );
+  }
+
   const groupedResults = useMemo(() => {
     return gigs.reduce((acc, gig) => {
       if (!gig.eventDate) return acc;
@@ -319,8 +342,8 @@ export default function MonthlyResults({ gigs }) {
     const svgWidth = leftPadding + chartData.length * (barWidth + gap);
 
     return (
-      <div className="app-panel border border-zinc-800 rounded-2xl p-6">
-        <h2 className="text-2xl font-semibold mb-2">
+      <div className="app-panel border border-zinc-800 rounded-2xl p-4 sm:p-6">
+        <h2 className="text-xl sm:text-2xl font-semibold mb-2">
           Actual Net Income by Month
         </h2>
 
@@ -518,7 +541,7 @@ export default function MonthlyResults({ gigs }) {
 
   function renderTopClubCard(title, clubData, subtitle) {
     return (
-      <div className="app-panel border border-zinc-800 rounded-2xl p-5">
+      <div className="app-panel border border-zinc-800 rounded-2xl p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
             <h3 className="text-lg font-semibold">{title}</h3>
@@ -542,7 +565,7 @@ export default function MonthlyResults({ gigs }) {
               <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
                 <p className="text-xs text-zinc-400 mb-1">Net</p>
                 <p className="text-lg font-bold">
-                  €{clubData.netIncome.toFixed(2)}
+                  {formatMoney(clubData.netIncome)}
                 </p>
               </div>
 
@@ -554,14 +577,14 @@ export default function MonthlyResults({ gigs }) {
               <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
                 <p className="text-xs text-zinc-400 mb-1">Gross</p>
                 <p className="text-lg font-bold">
-                  €{clubData.grossIncome.toFixed(2)}
+                  {formatMoney(clubData.grossIncome)}
                 </p>
               </div>
 
               <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3">
                 <p className="text-xs text-zinc-400 mb-1">Costs</p>
                 <p className="text-lg font-bold">
-                  €{clubData.totalCosts.toFixed(2)}
+                  {formatMoney(clubData.totalCosts)}
                 </p>
               </div>
             </div>
@@ -590,8 +613,10 @@ export default function MonthlyResults({ gigs }) {
 
   return (
     <div className="space-y-6">
-      <div className="app-panel border border-zinc-800 rounded-2xl p-6">
-        <h2 className="text-2xl font-semibold mb-4">Monthly Results</h2>
+      <div className="app-panel border border-zinc-800 rounded-2xl p-4 sm:p-6">
+        <h2 className="text-xl sm:text-2xl font-semibold mb-4">
+          Monthly Results
+        </h2>
 
         <div className="mb-5">
           <p className="text-sm text-zinc-400 mb-2">Select Year</p>
@@ -653,9 +678,9 @@ export default function MonthlyResults({ gigs }) {
       </div>
 
       {selectedMonthData ? (
-        <div className="app-panel border border-zinc-800 rounded-2xl p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <h2 className="text-2xl font-semibold">
+        <div className="app-panel border border-zinc-800 rounded-2xl p-4 sm:p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
+            <h2 className="text-xl sm:text-2xl font-semibold">
               {selectedMonthData.label}
             </h2>
 
@@ -674,97 +699,74 @@ export default function MonthlyResults({ gigs }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-              <p className="text-sm text-zinc-400 mb-2">
-                Planned Gross Income
-              </p>
+          <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+            <ResultMetricCard
+              label="Planned Gross Income"
+              value={selectedMonthData.plannedGrossIncome}
+            />
 
-              <p className="text-3xl font-bold">
-                €{selectedMonthData.plannedGrossIncome.toFixed(2)}
-              </p>
-            </div>
+            <ResultMetricCard
+              label="Actual Gross Income"
+              value={selectedMonthData.actualGrossIncome}
+              tone="actual"
+            />
 
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-              <p className="text-sm text-zinc-400 mb-2">Planned Costs</p>
+            <ResultMetricCard
+              label="Planned Net Income"
+              value={selectedMonthData.plannedNetIncome}
+            />
 
-              <p className="text-3xl font-bold">
-                €{selectedMonthData.plannedCosts.toFixed(2)}
-              </p>
-            </div>
+            <ResultMetricCard
+              label="Actual Net Income"
+              value={selectedMonthData.actualNetIncome}
+              tone="actual"
+            />
 
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-              <p className="text-sm text-zinc-400 mb-2">
-                Planned Net Income
-              </p>
+            <ResultMetricCard
+              label="Planned Costs"
+              value={selectedMonthData.plannedCosts}
+            />
 
-              <p className="text-3xl font-bold">
-                €{selectedMonthData.plannedNetIncome.toFixed(2)}
-              </p>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-              <p className="text-sm text-zinc-400 mb-2">
-                Actual Gross Income
-              </p>
-
-              <p className="text-3xl font-bold">
-                €{selectedMonthData.actualGrossIncome.toFixed(2)}
-              </p>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-              <p className="text-sm text-zinc-400 mb-2">Actual Costs</p>
-
-              <p className="text-3xl font-bold">
-                €{selectedMonthData.actualCosts.toFixed(2)}
-              </p>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
-              <p className="text-sm text-zinc-400 mb-2">
-                Actual Net Income
-              </p>
-
-              <p className="text-3xl font-bold">
-                €{selectedMonthData.actualNetIncome.toFixed(2)}
-              </p>
-            </div>
+            <ResultMetricCard
+              label="Actual Costs"
+              value={selectedMonthData.actualCosts}
+              tone="actual"
+            />
           </div>
 
-          <div className="mt-4 text-sm text-zinc-400 flex flex-col gap-2 md:flex-row md:flex-wrap md:gap-6">
-            <span>
-              Total Gigs:{" "}
-              <span className="text-white font-semibold">
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
+              <p className="text-xs text-zinc-500 mb-1">Total Gigs</p>
+              <p className="text-white font-semibold">
                 {selectedMonthData.totalGigs}
-              </span>
-            </span>
+              </p>
+            </div>
 
-            <span>
-              Planned Gigs:{" "}
-              <span className="text-white font-semibold">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
+              <p className="text-xs text-zinc-500 mb-1">Planned Gigs</p>
+              <p className="text-white font-semibold">
                 {selectedMonthData.plannedGigs}
-              </span>
-            </span>
+              </p>
+            </div>
 
-            <span>
-              Played Gigs:{" "}
-              <span className="text-white font-semibold">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
+              <p className="text-xs text-zinc-500 mb-1">Played Gigs</p>
+              <p className="text-white font-semibold">
                 {selectedMonthData.playedGigs}
-              </span>
-            </span>
+              </p>
+            </div>
 
-            <span>
-              Canceled Gigs:{" "}
-              <span className="text-white font-semibold">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
+              <p className="text-xs text-zinc-500 mb-1">Canceled Gigs</p>
+              <p className="text-white font-semibold">
                 {selectedMonthData.canceledGigs}
-              </span>
-            </span>
+              </p>
+            </div>
           </div>
         </div>
       ) : (
-        <div className="app-panel border border-zinc-800 rounded-2xl p-6">
-          <h2 className="text-2xl font-semibold mb-2">
+        <div className="app-panel border border-zinc-800 rounded-2xl p-4 sm:p-6">
+          <h2 className="text-xl sm:text-2xl font-semibold mb-2">
             {selectedYear !== null && selectedMonthIndex !== null
               ? `${monthLongNames[selectedMonthIndex]} ${selectedYear}`
               : "Monthly Results"}
@@ -792,14 +794,14 @@ export default function MonthlyResults({ gigs }) {
 
       {renderChartsTabs()}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="app-panel border border-zinc-800 rounded-2xl p-5">
-          <p className="text-sm text-zinc-400 mb-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="app-panel border border-zinc-800 rounded-2xl p-3 sm:p-5">
+          <p className="text-[11px] sm:text-sm text-zinc-400 mb-2 leading-tight">
             Year Actual Gross Income
           </p>
 
-          <p className="text-2xl md:text-3xl font-bold">
-            €{Number(selectedYearSummary?.actualGrossIncome || 0).toFixed(2)}
+          <p className="text-[1.35rem] sm:text-2xl md:text-3xl font-bold leading-none">
+            {formatMoney(selectedYearSummary?.actualGrossIncome)}
           </p>
 
           <p className="mt-2 text-xs text-zinc-500">
@@ -807,11 +809,13 @@ export default function MonthlyResults({ gigs }) {
           </p>
         </div>
 
-        <div className="app-panel border border-zinc-800 rounded-2xl p-5">
-          <p className="text-sm text-zinc-400 mb-2">Year Actual Net Income</p>
+        <div className="app-panel border border-zinc-800 rounded-2xl p-3 sm:p-5">
+          <p className="text-[11px] sm:text-sm text-zinc-400 mb-2 leading-tight">
+            Year Actual Net Income
+          </p>
 
-          <p className="text-2xl md:text-3xl font-bold">
-            €{Number(selectedYearSummary?.actualNetIncome || 0).toFixed(2)}
+          <p className="text-[1.35rem] sm:text-2xl md:text-3xl font-bold leading-none">
+            {formatMoney(selectedYearSummary?.actualNetIncome)}
           </p>
 
           <p className="mt-2 text-xs text-zinc-500">
@@ -819,11 +823,13 @@ export default function MonthlyResults({ gigs }) {
           </p>
         </div>
 
-        <div className="app-panel border border-zinc-800 rounded-2xl p-5">
-          <p className="text-sm text-zinc-400 mb-2">Year Actual Costs</p>
+        <div className="app-panel border border-zinc-800 rounded-2xl p-3 sm:p-5">
+          <p className="text-[11px] sm:text-sm text-zinc-400 mb-2 leading-tight">
+            Year Actual Costs
+          </p>
 
-          <p className="text-2xl md:text-3xl font-bold">
-            €{Number(selectedYearSummary?.actualCosts || 0).toFixed(2)}
+          <p className="text-[1.35rem] sm:text-2xl md:text-3xl font-bold leading-none">
+            {formatMoney(selectedYearSummary?.actualCosts)}
           </p>
 
           <p className="mt-2 text-xs text-zinc-500">
@@ -831,10 +837,12 @@ export default function MonthlyResults({ gigs }) {
           </p>
         </div>
 
-        <div className="app-panel border border-zinc-800 rounded-2xl p-5">
-          <p className="text-sm text-zinc-400 mb-2">Year Played Gigs</p>
+        <div className="app-panel border border-zinc-800 rounded-2xl p-3 sm:p-5">
+          <p className="text-[11px] sm:text-sm text-zinc-400 mb-2 leading-tight">
+            Year Played Gigs
+          </p>
 
-          <p className="text-2xl md:text-3xl font-bold">
+          <p className="text-[1.35rem] sm:text-2xl md:text-3xl font-bold leading-none">
             {Number(selectedYearSummary?.playedGigs || 0)}
           </p>
 

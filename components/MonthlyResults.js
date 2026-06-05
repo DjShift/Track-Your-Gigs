@@ -52,11 +52,24 @@ export default function MonthlyResults({ gigs }) {
     const toneClass =
       tone === "actual"
         ? "border-purple-500/30 bg-purple-950/20"
+        : tone === "active"
+        ? "border-emerald-500/30 bg-emerald-950/20"
+        : tone === "lost"
+        ? "border-red-500/30 bg-red-950/20"
         : "border-zinc-800 bg-zinc-950/80";
+
+    const labelClass =
+      tone === "active"
+        ? "text-emerald-200/70"
+        : tone === "lost"
+        ? "text-red-200/70"
+        : "text-zinc-400";
 
     return (
       <div className={`rounded-2xl border ${toneClass} p-3 sm:p-5`}>
-        <p className="text-[11px] sm:text-sm text-zinc-400 mb-2 leading-tight min-h-[28px] sm:min-h-0">
+        <p
+          className={`text-[11px] sm:text-sm mb-2 leading-tight min-h-[28px] sm:min-h-0 ${labelClass}`}
+        >
           {label}
         </p>
 
@@ -87,6 +100,8 @@ export default function MonthlyResults({ gigs }) {
           playedGigs: 0,
           canceledGigs: 0,
           plannedGrossIncome: 0,
+          activeGrossPlan: 0,
+          lostGrossByCancellations: 0,
           plannedCosts: 0,
           plannedNetIncome: 0,
           actualGrossIncome: 0,
@@ -105,6 +120,12 @@ export default function MonthlyResults({ gigs }) {
       acc[monthKey].plannedGrossIncome += fee;
       acc[monthKey].plannedCosts += totalCosts;
       acc[monthKey].plannedNetIncome += netProfit;
+
+      if (gig.status === "Canceled") {
+        acc[monthKey].lostGrossByCancellations += fee;
+      } else {
+        acc[monthKey].activeGrossPlan += fee;
+      }
 
       if (gig.status === "Planned") {
         acc[monthKey].plannedGigs += 1;
@@ -504,9 +525,7 @@ export default function MonthlyResults({ gigs }) {
               type="button"
               onClick={() => setActiveChart("net")}
               className={`${buttonBaseClass} ${
-                activeChart === "net"
-                  ? activeButtonClass
-                  : inactiveButtonClass
+                activeChart === "net" ? activeButtonClass : inactiveButtonClass
               }`}
             >
               Net Club
@@ -703,6 +722,18 @@ export default function MonthlyResults({ gigs }) {
             <ResultMetricCard
               label="Planned Gross Income"
               value={selectedMonthData.plannedGrossIncome}
+            />
+
+            <ResultMetricCard
+              label="Active Gross Plan"
+              value={selectedMonthData.activeGrossPlan}
+              tone="active"
+            />
+
+            <ResultMetricCard
+              label="Lost Gross"
+              value={selectedMonthData.lostGrossByCancellations}
+              tone="lost"
             />
 
             <ResultMetricCard
